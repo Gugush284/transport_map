@@ -53,10 +53,10 @@ def collect_data(npage):
     print(pag_count)
     #print("f")
     #result_data []
-    with open("namesofstops","w", encoding="utf-8") as stops:
+    with open("database.txt","w", encoding="utf-8") as database:
         
         #print(npage)
-        for i in range(1, npage):
+        for i in range(1, 2+1):
             url=f"https://data.mos.ru/api/rows/getresultwithcount?datasetId=752&search=&sortField=Number&sortOrder=ASC&versionNumber=7&releaseNumber=335&pageNumber={i}"
             
             try:
@@ -74,17 +74,21 @@ def collect_data(npage):
             
             print(url)
             
-
             data = r.json()
         
             names=data.get("Result")
-        
+            
             for name in names:
-                value=name.get("Cells").get("Name")
-                #print(value)
-                stops.write(value)
-                stops.write('\n')
-            print("Прогресс завершен на:", round(100/npage*(i),1))
+                value1=name.get("Cells").get("StationName")   #получает имя остановки
+                value2_0=name.get("Cells").get("geoData").get("coordinates")[0] #получает координаты остановки
+                value2_1=name.get("Cells").get("geoData").get("coordinates")[1]
+                value3=name.get("Cells").get("RouteNumbers")    #получает маршруты остановки
+                seq=[f"{value1}",f"{value2_0}",f"{value2_1}",f"{value3}"]
+                #print(seq)
+                database.writelines(line + ' ' for line in seq)
+                database.write('\n') 
+            print("Прогресс: ", round(100/npage*(i),1),"%")
+            
 def main():
     #get_page(url="https://data.mos.ru/api/rows/getresultwithcount?datasetId=752&search=&sortField=Number&sortOrder=ASC&versionNumber=7&releaseNumber=335&pageNumber=1")
     #get_json(url="https://data.mos.ru/api/rows/getresultwithcount?datasetId=752&search=&sortField=Number&sortOrder=ASC&versionNumber=7&releaseNumber=335&pageNumber=1")

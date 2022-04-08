@@ -23,7 +23,7 @@
             <meta name="viewport" content="width=device-width,
                 initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
             <style>
-                #map_0a3ff86a91f441a6892958fd02c55387 {
+                #map_5b3e0af91fc74dbcade1709298344768 {
                     position: relative;
                     width: 100.0%;
                     height: 100.0%;
@@ -35,13 +35,13 @@
 </head>
 <body>    
     
-            <div class="folium-map" id="map_0a3ff86a91f441a6892958fd02c55387" ></div>
+            <div class="folium-map" id="map_5b3e0af91fc74dbcade1709298344768" ></div>
         
 </body>
 <script>    
     
-            var map_0a3ff86a91f441a6892958fd02c55387 = L.map(
-                "map_0a3ff86a91f441a6892958fd02c55387",
+            var map_5b3e0af91fc74dbcade1709298344768 = L.map(
+                "map_5b3e0af91fc74dbcade1709298344768",
                 {
                     center: [55.752004, 37.617734],
                     crs: L.CRS.EPSG3857,
@@ -55,9 +55,65 @@
 
         
     
-            var tile_layer_3a729d7819b04c0ba3774faa1656f672 = L.tileLayer(
+            var tile_layer_66a23b047e2b4078990baf9c4ffa1f41 = L.tileLayer(
                 "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
                 {"attribution": "Data by \u0026copy; \u003ca href=\"http://openstreetmap.org\"\u003eOpenStreetMap\u003c/a\u003e, under \u003ca href=\"http://www.openstreetmap.org/copyright\"\u003eODbL\u003c/a\u003e.", "detectRetina": false, "maxNativeZoom": 18, "maxZoom": 18, "minZoom": 8, "noWrap": false, "opacity": 1, "subdomains": "abc", "tms": false}
-            ).addTo(map_0a3ff86a91f441a6892958fd02c55387);
+            ).addTo(map_5b3e0af91fc74dbcade1709298344768);
+        
+    
+            var marker_cccc1337b8bb49898a855585b0b451d6 = L.marker(
+                [55.752004, 37.617734],
+                {}
+            ).addTo(map_5b3e0af91fc74dbcade1709298344768);
+        
+    
+            var icon_527a7c81ecd946229829ec398e296576 = L.AwesomeMarkers.icon(
+                {"extraClasses": "fa-rotate-0", "icon": "info-sign", "iconColor": "white", "markerColor": "red", "prefix": "glyphicon"}
+            );
+            marker_cccc1337b8bb49898a855585b0b451d6.setIcon(icon_527a7c81ecd946229829ec398e296576);
+        
+    
+        var popup_e95a5fbf68d2421786eb2223395447f6 = L.popup({"maxWidth": "100%"});
+
+        
+            var html_1e8a3106b1704b93b2da6d9ba119d422 = $(`<div id="html_1e8a3106b1704b93b2da6d9ba119d422" style="width: 100.0%; height: 100.0%;">Point</div>`)[0];
+            popup_e95a5fbf68d2421786eb2223395447f6.setContent(html_1e8a3106b1704b93b2da6d9ba119d422);
+        
+
+        marker_cccc1337b8bb49898a855585b0b451d6.bindPopup(popup_e95a5fbf68d2421786eb2223395447f6)
+        ;
+
+        
+    
+    
+            var marker_52ca2e3bbea24781bbe7696b0be51235 = L.marker(
+                [55.852004, 37.617734],
+                {}
+            ).addTo(map_5b3e0af91fc74dbcade1709298344768);
+        
+    
+            var icon_804f23699f9e4453ba015df47f5f0f95 = L.AwesomeMarkers.icon(
+                {"extraClasses": "fa-rotate-0", "icon": "info-sign", "iconColor": "white", "markerColor": "red", "prefix": "glyphicon"}
+            );
+            marker_52ca2e3bbea24781bbe7696b0be51235.setIcon(icon_804f23699f9e4453ba015df47f5f0f95);
+        
+    
+        var popup_20dacdbab3b84513918a97123b611f3b = L.popup({"maxWidth": "100%"});
+
+        
+            var html_ee07460c83094a63bfe6e5f362cd17f7 = $(`<div id="html_ee07460c83094a63bfe6e5f362cd17f7" style="width: 100.0%; height: 100.0%;">Point</div>`)[0];
+            popup_20dacdbab3b84513918a97123b611f3b.setContent(html_ee07460c83094a63bfe6e5f362cd17f7);
+        
+
+        marker_52ca2e3bbea24781bbe7696b0be51235.bindPopup(popup_20dacdbab3b84513918a97123b611f3b)
+        ;
+
+        
+    
+    
+            var poly_line_b3b09265d7a14b408adcac15b132cdd4 = L.polyline(
+                [[55.752004, 37.617734], [55.852004, 37.617734]],
+                {"bubblingMouseEvents": true, "color": "red", "dashArray": null, "dashOffset": null, "fill": false, "fillColor": "red", "fillOpacity": 0.2, "fillRule": "evenodd", "lineCap": "round", "lineJoin": "round", "noClip": false, "opacity": 1.0, "smoothFactor": 1.0, "stroke": true, "weight": 3}
+            ).addTo(map_5b3e0af91fc74dbcade1709298344768);
         
 </script>

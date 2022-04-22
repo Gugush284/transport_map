@@ -1,0 +1,34 @@
+{% include 'map.html' %}
+<!-- included html file with map -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+</head>
+<!-- set coding standart and name of page -->
+<body style="background-color: #90ee90">
+	<!-- set background color -->
+    {% if message %}
+        <p>{{ message }}</p>
+    {% endif %}
+    <!-- print message if user filled forms -->
+    <form action="" method="post">
+        <p>
+	    <label for="Station1">Station1</label>
+	    <input type="Station1" name="Station1">
+	</p>
+	<!-- input first station -form -->
+	<p>
+	    <label for="Station2">Station2</label>
+	    <input type="Station2" name="Station2">
+	</p>
+	<!-- input second station -form -->
+	<p>
+	    <input type="submit">
+	</p>
+	<!-- submit button -form -->
+    </form>
+    
+</body>
+</html>

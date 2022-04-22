@@ -199,7 +199,7 @@ def find_neighbor(sqlite_connection, id, routes_id, cursor):
             cursor.execute(command)
             chain_stops = cursor.fetchone()[0].split()
 
-            # List of nearby routes
+            # List of nearby stations
             id_n = list()
 
             # Searching nearby stops in the route chain of stops
@@ -253,10 +253,7 @@ def find_neighbor(sqlite_connection, id, routes_id, cursor):
     else:
         return neig
 
-# graph is a dict, where key is id of the station
-# graph[key] has a type of class edge and contains
-# information about nearby stations: their ids, length to them
-# and routes to them
+
 def reading_db(graph):
     try:
         # Connecting to data base
@@ -377,11 +374,18 @@ def print_graph(graph):
         sqlite_connection.close()
 
 def read():
+    # graph is a dict, where key is id of the station
+    # graph[key] has a type of class edge and contains
+    # information about nearby stations: their ids, length to them
+    # and routes to them
     graph = dict()
     graph = reading_db(graph)
-    return graph
 
 def main():
+    # graph is a dict, where key is id of the station
+    # graph[key] has a type of class edge and contains
+    # information about nearby stations: their ids, length to them
+    # and routes to them
     graph = dict()
     graph = reading_db(graph)
     print_graph(graph)

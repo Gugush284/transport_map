@@ -1,5 +1,5 @@
-import sqlite3
 import os
+import sqlite3
 
 
 class nstop:
@@ -372,6 +372,64 @@ def print_graph(graph):
         exit()
     finally:
         sqlite_connection.close()
+
+#part of dijkstra function 
+def find_min(seen, way_len):
+    vmin = -1
+    min_ = way_len[max(way_len, key=way_len.get)]
+    for key, value in way_len.items():
+        if value < min_ and key not in seen:
+            min_ = value
+            vmin = key
+    return vmin
+
+
+# realisation of dijkstra algorithm on our graph
+def dijkstra(graph, start_point, finish__point, seen, way_len):
+    while start_point != -1:
+        amount_of_routes_passing_start_point = graph[start_point].get_routes_len()
+        for i in range(amount_of_routes_passing_start_point):
+            tmp = graph[start_point].get_stop(graph[start_point].get_route(i))
+            for j in range(len(tmp)):
+                if tmp[j].stop() not in seen:
+                    tmp_weight = way_len[start_point] + tmp[j].weight
+                    if (
+                        tmp_weight < way_len[tmp[j].stop()]
+                        or tmp[j].stop not in way_len
+                    ):
+                        way_len[tmp[j].stop] = tmp_weight
+
+        start_point = find_min(seen, way_len)
+        if start_point > 0:
+            seen.add(start_point)
+            if start_point == finish__point:
+                break
+
+#function from function find_the_shortest_way 
+def find_route(graph, start_point, finish_point): 
+    route = -1 
+    amount_of_routes_passing_start_point = graph[start_point].get_routes_len()
+    for i in range(amount_of_routes_passing_start_point): 
+        tmp = graph[start_point].get_stop(graph[start_point].get_route(i)) 
+        for j in range (len(tmp)): 
+
+
+#returns 2 things stops and routes connecting that stops
+# now in process  
+def find_the_shortest_way(graph, start_point, finish_point):
+    seen = list()
+    way_len = dict()
+    way_len[start_point] = 0.0
+    dijkstra(graph, start_point, finish_point, seen, way_len)
+    reversed(seen) 
+    len_ = len(seen) 
+    i = 0
+    final_stops = list()
+    final_stops.append(seen[i])  
+    final_routes = list()
+    while way_len(seen[i]) != 0:
+        #check if there is a route from one stop to another   
+        find_route(graph, start_point, finish_point)
 
 def read():
     # graph is a dict, where key is id of the station

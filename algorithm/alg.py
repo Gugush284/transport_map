@@ -58,6 +58,7 @@ def read_routes(sqlite_connection, cur):
             for elem in chain:
                 chain_int.append(int(elem))
 
+            # finding out if the route is circular 
             command = "SELECT Ring FROM routesker WHERE _id = "
             command += str(id)
             cur.execute(command)
@@ -289,26 +290,38 @@ def TEST_PRINT(graph, routes):
     finally:
         sqlite_connection.close()
 
+
+# stop1 is id of start stop
+# stop2 is id of end stop
+# route is id of route
+# cur is sql cursor
 def calculation(route, stop1, stop2, cur):
+
+    # if stop1 is stop 
     if stop1 == stop2:
         return 0
 
     try:
+        
+        # get a chain of stop ids 
         command = "SELECT chain_stops FROM routesker WHERE _id = "
         command += str(route)
         cur.execute(command)
         chain_str_id = cur.fetchone()[0].split()
 
+        # translate stop ids into int
         chain_id = list()
         for item in chain_str_id:
             chain_id.append(int(item))        
         del chain_str_id
 
+        # get a chain of coordinates
         command = "SELECT chain_cords FROM routesker WHERE _id = "
         command += str(route)
         cur.execute(command)
         chain_str_coords = cur.fetchone()[0].split()
 
+        # compose and translate coordinates into float
         chain_coords = list()
         for index in range(0, len(chain_str_coords), 2):
             chain_coords.append((
@@ -317,11 +330,13 @@ def calculation(route, stop1, stop2, cur):
             ))
         del chain_str_coords
 
+        # check if the route is circular
         command = "SELECT Ring FROM routesker WHERE _id = "
         command += str(route)
         cur.execute(command)
         ring = int(cur.fetchone()[0])
 
+        # get a coords of stop1 id and translate it into float
         command = "SELECT Cords FROM stopsker WHERE _id = "
         command += str(stop1)
         cur.execute(command)
@@ -330,6 +345,7 @@ def calculation(route, stop1, stop2, cur):
         float(stop1_coords_str[1]))
         del stop1_coords_str
         
+        # get a coords of stop2 id and translate it into float
         command = "SELECT Cords FROM stopsker WHERE _id = "
         command += str(stop2)
         cur.execute(command)
@@ -363,6 +379,9 @@ def calculation(route, stop1, stop2, cur):
         print("Worng data format in DATA BASE")
         return -2
     else:
+
+        # look for the positions of the coordinates 
+        # of stops in the chain of coordinates of the route
         position_stop1 = list()
         position_stop2 = list()
 
@@ -376,7 +395,9 @@ def calculation(route, stop1, stop2, cur):
             return -3
 
         road = list()
-
+        
+        # if the route is not circular, we find from right to
+        # left all the coordinate chains connecting the stops
         if ring != 1:
             for position1 in position_stop1:
                 for position2 in position_stop2:
@@ -386,14 +407,21 @@ def calculation(route, stop1, stop2, cur):
                             way.append(chain_coords[index])
                         road.append(way)
         else:
+        # if the route is circular, we find
+        # a chain of coordinates connecting the stops
            for position1 in position_stop1:
                 for position2 in position_stop2:
                     way = list()
                     if (position1 < position2):
+                    # if there is a start in the chain 
+                    # first, and then the end
                         for index in range(position1, position2+1, 1):
                             way.append(chain_coords[index])
                         road.append(way)
                     else:
+                    # if there is an end in the chain first, and then a 
+                    # start, go from the start to the end of the chain 
+                    # array, and from the beginning of the array to the end
                         for index in range(position1, len(chain_coords), 1):
                             way.append(chain_coords[index])
                         for index in range(0, position2+1, 1):
@@ -403,6 +431,7 @@ def calculation(route, stop1, stop2, cur):
         if len(road) == 0:
                 return -3
 
+        # we find out the smallest chain of coordinates
         enroute = road[0]
         for way in road:
             if len(way) < len(enroute):
@@ -413,8 +442,11 @@ def calculation(route, stop1, stop2, cur):
         del position_stop1
         del position_stop2
 
+        # sum up the distances between the points
         length = 0
         for index in range(len(enroute)-1):
+            # formula for calculating the distance between 
+            # two points and on a plane: sqrt((x2-x1)^2 + (y2-y1)^2)
             length += (((enroute[index + 1][0] - enroute[index][0]) ** 2) + (
                 (enroute[index + 1][1] - enroute[index][1]) ** 2)) ** 0.5
                 

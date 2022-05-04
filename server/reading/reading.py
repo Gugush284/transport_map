@@ -1,6 +1,5 @@
 import sqlite3
 import os
-from types import NoneType
 
 class STOP:
     def __init__(self, ID, name, x, y):
@@ -21,7 +20,7 @@ class STOP:
     def get_y(self):
         return self.ordinate
 
-def list_stops(cur):
+def read_stops(sql_connection, cur):
     stops = list()
 
     try:
@@ -44,34 +43,16 @@ def list_stops(cur):
 
             stops.append(STOP(int(item[0]), name, float(coords[0]),
                 float(coords[1])))
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
+
+    except Exception as e:
+        print({e})
+        sql_connection.close()
         exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
+        
     else:
         return stops
 
-def Ways(stop1, stop2, cur):
-
+def read_optimal_route(stop1, stop2, sql, cur):
     try:
         command = "SELECT _id FROM stopsker WHERE Name_stop = '"
         command += str(stop1)
@@ -116,87 +97,78 @@ def Ways(stop1, stop2, cur):
             cur.execute(command)
             way_str.append(cur.fetchone()[0])
 
-        transfer = Input[1].split()
-        transfer_str
-         = [[int(transfer[index]), int(transfer[index+1])]for index in range(0, len(transfer), 2)]
-        
+        transfer = list()
+        for elem in Input[1].split(";"):
+            one_transfer = elem.split()
+            
+            command = "SELECT Name_stop FROM stopsker WHERE _id = "
+            command += str(one_transfer[0])
+            cur.execute(command)
+            name_stop = cur.fetchone()[0]
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
+            command = "SELECT Name_route FROM routesker WHERE _id = "
+            command += str(one_transfer[1])
+            cur.execute(command)
+            name_route = cur.fetchone()[0]
+            
+            transfer.append([name_stop, name_route])
+
+    except Exception as e:
+        print({e})
+        sql.close()
         exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
     else:
-        return 0, way_str, []#transfer
+        return 0, way_str, transfer
 
-def fun():
+def read_db(stop1, stop2, sql_connection, cursor):
+    stops = read_stops(sql_connection, cursor)
+
+    errno, way, transfer = read_optimal_route(stop1, stop2,
+     sql_connection, cursor)
+    if errno == -1:
+        print("No such start station")
+    elif errno == -2:
+        print("No such final station")
+    elif errno == -3:
+        print("No route for this stations")
+    else:
+        return stops, way, transfer
+
+    return stops, [], []
+
+def connection():
     try:
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
         'example_server.db')
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
+
+    except Exception as e:
+        print({e})
         exit()
     else:
-        print("Enter first stop")
-        #stop1 = input()
-        print("Enter second stop")
-        #stop2 = 1
+        return sqlite_connection, cur
 
-        errno, way, transfer = Ways("STOP 1", "STOP 7", cur)
-        if errno == -1:
-            print("No such start station")
-        elif errno == -2:
-            print("No such final station")
-        elif errno == -3:
-            print("No route for this stations")
-        else:
-            return list_stops(cur), way, transfer
+def fun():
+    sql_connection, cursor = connection()
 
-        return list_stops(cur), [], []
-    finally:
-        sqlite_connection.close()
+    print("Enter first stop")
+    stop1 = "STOP 1"
+    print("Enter second stop")
+    stop2 = "STOP 7"
+
+    stops, way, transfer = read_db(stop1, stop2, sql_connection, cursor)
+
+    return stops, way, transfer
 
 def TEST_PRINT_STOPS(stops, way, transfer):
-    print(way)
-    print(transfer)
+    print("\nOptimal way:")
+    print("{}\n".format(way))
+
+    print("Transfer:")
+    print("{}\n".format(transfer))
+
+    print("Stops")
     for stop in stops:
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))

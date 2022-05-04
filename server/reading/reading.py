@@ -1,9 +1,10 @@
 import sqlite3
 import os
-
+ 
+ # Class consists of info about current stop
 class STOP:
     def __init__(self, ID, name, x, y):
-        self.id = ID
+        self.id = ID 
         self.name = name
         self.abscissa = x
         self.ordinate = y
@@ -24,10 +25,12 @@ def read_stops(sql_connection, cur):
     stops = list()
 
     try:
+        # Get all stop ids
         command = "SELECT _id FROM stopsker"
         cur.execute(command)
         amount = cur.fetchall()
 
+        # For each id read indo from data base to class stop
         for item in amount:
             command = "SELECT Name_stop FROM stopsker WHERE _id = "
             command += str(item[0])
@@ -52,8 +55,13 @@ def read_stops(sql_connection, cur):
     else:
         return stops
 
+# sql - sql connection
+# cur - cursor 
 def read_optimal_route(stop1, stop2, sql, cur):
     try:
+        # For two stops get optimal route between them
+
+        # Get id of stop1
         command = "SELECT _id FROM stopsker WHERE Name_stop = '"
         command += str(stop1)
         command += "'"
@@ -61,11 +69,13 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
         Input = cur.fetchone()
 
+        # if we don't have stop1
         if Input is None:
             return -1, [], [] 
         else:
             id1 = int(Input[0])
 
+        # Get id of stop2
         command = "SELECT _id FROM stopsker WHERE Name_stop = '"
         command += str(stop2)
         command += "'"
@@ -73,11 +83,13 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
         Input = cur.fetchone()
 
+        # if we don't have stop2
         if Input is None:
             return -2, [], [] 
         else:
             id2 = int(Input[0])
 
+        # Get optimal way and transfers in it  
         command = "SELECT route, transfer FROM way WHERE id1 = "
         command += str(id1)
         command += " and id2 = "
@@ -85,11 +97,15 @@ def read_optimal_route(stop1, stop2, sql, cur):
         cur.execute(command)
         Input = cur.fetchone()
 
+        # if no way 
         if Input is None:
             return -3, [], []
 
+        # str route -> int way
+        # way consists of ids
         way = [int(elem) for elem in Input[0].split()]
 
+        # way_str consists of names
         way_str = list()
         for elem in way:
             command = "SELECT Name_stop FROM stopsker WHERE _id = "
@@ -157,6 +173,9 @@ def fun():
     print("Enter second stop")
     stop2 = "STOP 7"
 
+    # stops is a list of class STOP elements
+    # way is list of stops in route order
+    # transfer is list of [name of stop, name of route] 
     stops, way, transfer = read_db(stop1, stop2, sql_connection, cursor)
 
     return stops, way, transfer

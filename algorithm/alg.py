@@ -2,7 +2,7 @@ import heapq
 import math
 import os
 import sqlite3
-from ast import Delete
+from audioop import reverse
 
 
 class edge:
@@ -188,7 +188,6 @@ def read_db():
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "example.db")
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
-
         # graph is a dict, where key is id of the station
         # graph[key] has a type of class edge list
         # routes is a dict, where key is id of the route
@@ -512,9 +511,18 @@ def fun():
 
 
 def dijkstra_core(
-    route, stop_num, side, start, routes, dist, prev_stop, last_route, priority_queue
+    route,
+    stop_num,
+    side,
+    start,
+    sum_im_ed_1,
+    routes,
+    dist,
+    prev_stop,
+    last_route,
+    priority_queue,
 ):
-    sum_im_ed = dist[stop_num]
+    sum_im_ed = sum_im_ed_1  # Не произойдет ли тут прико с тем, что у меня в итоге изменится сам sum_im_ed_1?
     end_point = 0
     plus = 0
     start_2 = 0
@@ -562,35 +570,53 @@ def dijkstra_core(
 
 
 def routes_to_all_stops(start_stop, graph, routes):
+    # stop has an id id \in [1 ... amount_of_stops]
+    # priority_queue -- a struct where we are putting a stop and a length to it
     priority_queue = []
     heapq.heapify(priority_queue)
+    # last_route -- a list with the last route from which we came to stop
     last_route = [None for i in range(len(graph) + 1)]
+    # prev_stop -- a list with the last stop from with we came to stop
     prev_stop = [None for i in range(len(graph) + 1)]
+    # the long of the way to the stop
     dist = [math.inf for i in range(len(graph) + 1)]
-    # visited = [0 for i in range(len(graph) + 1)]
+    # if a stop was visited 1 else 0
+    visited = [0 for i in range(len(graph) + 1)]
+    # pushing the start_stop to heapq
     heapq.heappush(priority_queue, (0, start_stop))
     dist[start_stop] = 0
+    prev_stop[start_stop] = start_stop
 
     while len(priority_queue) != 0:
+        # taking the min path
         tmp = heapq.heappop(priority_queue)
         way_len = tmp[0]
         stop_num = tmp[1]
+        visited[stop_num] = 1
+
+        # looking if there is a sense to start dijkstra
         if way_len > dist[stop_num]:
             continue
-
+        # we running all routes which a pasing througth our stop
         for i in range(len(graph[stop_num])):
             route = graph[stop_num][i].get_route_name()
             pointer = graph[stop_num][i].get_pointer()
             if_a_ring = routes[route].get_ring()
-            # a ring
+            sum_im_ed_1 = delta
+            # run dijkstra depending on the type of route
+            # if it a ring we shoul do dijkstra in both pathes
             if if_a_ring != 0:
                 for j in range(len(pointer)):
                     # moving to the right
+                    if visited[pointer[j]] == 1:
+                        continue
+                    sum_im_ed_1 += dist[stop_num]
                     dijkstra_core(
                         route,
                         stop_num,
                         1,
                         pointer[j],
+                        sum_im_ed_1,
                         routes,
                         dist,
                         prev_stop,
@@ -603,33 +629,62 @@ def routes_to_all_stops(start_stop, graph, routes):
                         stop_num,
                         -1,
                         pointer[j],
+                        sum_im_ed_1,
                         routes,
                         dist,
                         prev_stop,
                         last_route,
                         priority_queue,
                     )
+            # if it's not a ring then one side
             else:
                 for j in range(len(pointer)):
+                    if visited[pointer[j]] == 1:
+                        continue
                     # moving to the right
                     dijkstra_core(
                         route,
                         stop_num,
                         1,
                         pointer[j],
+                        sum_im_ed_1,
                         routes,
                         dist,
                         prev_stop,
                         last_route,
                         priority_queue,
                     )
+    return_routes(last_route, prev_stop, graph, start_stop)
 
 
+def find_path(mass, start_stop, last_stop):
+    path = list()
+    path.append(last_stop)
+    while last_stop != start_stop:
+        path.append(mass[last_stop])
+        last_stop = mass[last_stop]
+    reverse(path)
+    return path
+
+
+def return_routes(last_route, prev_stop, graph, start_stop):
+    for i in range(1, len(graph) + 1):
+        if i != start_stop:
+            return (
+                start_stop,
+                i,
+                find_path(prev_stop, start_stop, i),
+                find_path(last_route, start_stop, i),
+            )
+
+
+# the main fubction that are finding the optimal route between all pairs of stops
 def opt_routes(graph, routes):
-    for start_stop in graph:
-        d = {}
+    # we run through all the stops in the graph
+    # and find all the optimal paths from one stop to another
+    for i in range(1, len(graph)):
         # returns the dict consistes of stop and route to that stop from "start_stop"
-        d = routes_to_all_stops(start_stop, graph, routes)
+        d = routes_to_all_stops(i, graph, routes)
         # here you need to write function that will import the dict to new db
 
 

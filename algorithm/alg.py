@@ -1,12 +1,15 @@
-from ast import Delete
-import sqlite3
+import heapq
+import math
 import os
+import sqlite3
+from audioop import reverse
+
 
 class edge:
     # Конструктор
     # pointer indicates the sequence numbers
     # in the chain of stops for the route
-    # route is one of the passing routes 
+    # route is one of the passing routes
     # through this stop
     def __init__(self, route, pointer):
         self.route = route
@@ -18,10 +21,11 @@ class edge:
     def get_route_name(self):
         return self.route
 
+
 class route_info:
     # Конструктор
-    # RING indicates if the route is a ring 
-    # route is one of the passing routes 
+    # RING indicates if the route is a ring
+    # route is one of the passing routes
     # through this stop
     def __init__(self, route, RING):
         self.route = route
@@ -33,24 +37,23 @@ class route_info:
     def get_route(self):
         return self.route
 
+
 def read_routes(sqlite_connection, cur):
     routes = dict()
 
     try:
         # Look for amount of routes and write to
         # a variable named "amount"
-        command = "SELECT _id FROM routesker"
-        cur.execute(command)
+        cur.execute("SELECT _id FROM routesker")
         amount = cur.fetchall()
-        
+
         for num in amount:
             # num[0] is id of route
             id = num[0]
-            
+
             # read chain of stops id for current stop
-            command = "SELECT chain_stops FROM routesker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+            cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+                [id])
             chain = cur.fetchone()[0].split()
 
             # change type of elem of chain
@@ -58,46 +61,19 @@ def read_routes(sqlite_connection, cur):
             for elem in chain:
                 chain_int.append(int(elem))
 
-            command = "SELECT Ring FROM routesker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+            # finding out if the route is circular
+            cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
+                [id])
 
             routes[int(id)] = route_info(chain_int, cur.fetchone()[0])
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
-        sqlite_connection.close() 
+    except Exception as e:
+        print({e})
+        sqlite_connection.close()
         exit()
     else:
-        return routes 
+        return routes
+
 
 def read_graph(sqlite_connection, cur):
     graph = dict()
@@ -105,28 +81,26 @@ def read_graph(sqlite_connection, cur):
     try:
         # Look for amount of stops and write to
         # a variable named "amount"
-        command = "SELECT _id FROM stopsker"
-        cur.execute(command)
+        cur.execute("SELECT _id FROM stopsker")
         amount = cur.fetchall()
-        
+
         for num in amount:
             # id of current stop
             id = num[0]
 
             graph[id] = list()
 
-            command = "SELECT Route_Num FROM stopsker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+
+            cur.execute("SELECT Route_Num FROM stopsker WHERE _id = ?",
+                [id])
 
             # array_routes is routes passing through the current stop
             array_routes = cur.fetchone()[0].split()
-            
+
             for route in array_routes:
                 # Get chain of stops for current route
-                command = "SELECT chain_stops FROM routesker WHERE _id = "
-                command += route
-                cur.execute(command)
+                cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+                    [route])
                 chain = cur.fetchone()[0].split()
 
                 # Find indicator of the sequence number
@@ -139,230 +113,127 @@ def read_graph(sqlite_connection, cur):
                     counter += 1
                 graph[id].append(edge(int(route), pointer))
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        sqlite_connection.close() 
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
-        sqlite_connection.close() 
+    except Exception as e:
+        print({e})
+        sqlite_connection.close()
         exit()
     else:
         return graph
 
-def read_db():
+
+def TEST_PRINT(graph, routes, cur):
     try:
-        # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-        'example.db')
-        sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
-
-        # graph is a dict, where key is id of the station
-        # graph[key] has a type of class edge list
-        # routes is a dict, where key is id of the route
-        # routes[key] has a type of list
-        routes = read_routes(sqlite_connection, cur)
-        graph = read_graph(sqlite_connection, cur)   
-
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
-        exit()
-    else:
-        return graph, routes
-    finally:
-        sqlite_connection.close()
-
-def TEST_PRINT(graph, routes):
-    try:
-        # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-        'example.db')
-        sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
-
         # Print stops in graph
         key_graph = graph.keys()
         for key in key_graph:
 
-            command = "SELECT Name_stop FROM stopsker WHERE _id = "
-            command += str(key)
-            cur.execute(command)
+            cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                [str(key)])
             name = cur.fetchone()[0]
 
             for elem in graph[key]:
-                command = "SELECT Name_route FROM routesker WHERE _id = "
-                command += str(elem.get_route_name())
-                cur.execute(command)
+                cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                    [elem.get_route_name()])
 
-                print("{} (id = {}) in {} by {} positions: {}".format(name, key,
-                cur.fetchone()[0], elem.get_pointer(), routes[elem.get_route_name()].get_route()))
-
+                print(
+                    "{} (id = {}) in {} by {} positions: {}".format(
+                        name,
+                        key,
+                        cur.fetchone()[0],
+                        elem.get_pointer(),
+                        routes[elem.get_route_name()].get_route(),
+                    )
+                )
 
         # Print routes
         print("\nRoutes:")
 
         key_routes = routes.keys()
         for key in key_routes:
-            command = "SELECT Name_route FROM routesker WHERE _id = "
-            command += str(key)
-            cur.execute(command)
+            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                [key])
 
             if routes[key].get_ring() != 0:
                 route_name = "Ring route"
             else:
                 route_name = "Route"
 
-            print("{} {}: {}".format(route_name, cur.fetchone()[0], routes[key].get_route()))
+            print(
+                "{} {}: {}".format(
+                    route_name, cur.fetchone()[0],
+                    routes[key].get_route()
+                )
+            )
 
         print("\n", end="")
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
+    except Exception as e:
+        print({e})
         exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
-        exit()
-    finally:
-        sqlite_connection.close()
 
+
+# stop1 is id of start stop
+# stop2 is id of end stop
+# route is id of route
+# cur is sql cursor
 def calculation(route, stop1, stop2, cur):
+
+    # if stop1 is stop
     if stop1 == stop2:
         return 0
 
     try:
-        command = "SELECT chain_stops FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+
+        # get a chain of stop ids
+        cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+            [route])
         chain_str_id = cur.fetchone()[0].split()
 
+        # translate stop ids into int
         chain_id = list()
         for item in chain_str_id:
-            chain_id.append(int(item))        
+            chain_id.append(int(item))
         del chain_str_id
 
-        command = "SELECT chain_cords FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+        # get a chain of coordinates
+        cur.execute("SELECT chain_cords FROM routesker WHERE _id = ?", 
+            [route])
         chain_str_coords = cur.fetchone()[0].split()
 
+        # compose and translate coordinates into float
         chain_coords = list()
         for index in range(0, len(chain_str_coords), 2):
-            chain_coords.append((
-                float(chain_str_coords[index]),
-                float(chain_str_coords[index+1])
-            ))
+            chain_coords.append(
+                (float(chain_str_coords[index]), float(chain_str_coords[index + 1]))
+            )
         del chain_str_coords
 
-        command = "SELECT Ring FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+        # check if the route is circular
+        cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
+            [route])
         ring = int(cur.fetchone()[0])
 
-        command = "SELECT Cords FROM stopsker WHERE _id = "
-        command += str(stop1)
-        cur.execute(command)
+        # get a coords of stop1 id and translate it into float
+        cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
+            [stop1])
         stop1_coords_str = cur.fetchone()[0].split()
-        stop1_coords = (float(stop1_coords_str[0]), 
-        float(stop1_coords_str[1]))
+        stop1_coords = (float(stop1_coords_str[0]), float(stop1_coords_str[1]))
         del stop1_coords_str
-        
-        command = "SELECT Cords FROM stopsker WHERE _id = "
-        command += str(stop2)
-        cur.execute(command)
+
+        # get a coords of stop2 id and translate it into float
+        cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
+            [stop2])
         stop2_coords_str = cur.fetchone()[0].split()
-        stop2_coords = (float(stop2_coords_str[0]), 
-        float(stop2_coords_str[1]))
+        stop2_coords = (float(stop2_coords_str[0]), float(stop2_coords_str[1]))
         del stop2_coords_str
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        return -1
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        return -1
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        return -1
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        return -1
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        return -1
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        return -1
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        return -1
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         return -2
     else:
+
+        # look for the positions of the coordinates
+        # of stops in the chain of coordinates of the route
         position_stop1 = list()
         position_stop2 = list()
 
@@ -377,32 +248,42 @@ def calculation(route, stop1, stop2, cur):
 
         road = list()
 
+        # if the route is not circular, we find from right to
+        # left all the coordinate chains connecting the stops
         if ring != 1:
             for position1 in position_stop1:
                 for position2 in position_stop2:
-                    if (position1 < position2):
+                    if position1 < position2:
                         way = list()
-                        for index in range(position1, position2+1, 1):
+                        for index in range(position1, position2 + 1, 1):
                             way.append(chain_coords[index])
                         road.append(way)
         else:
-           for position1 in position_stop1:
+            # if the route is circular, we find
+            # a chain of coordinates connecting the stops
+            for position1 in position_stop1:
                 for position2 in position_stop2:
                     way = list()
-                    if (position1 < position2):
-                        for index in range(position1, position2+1, 1):
+                    if position1 < position2:
+                        # if there is a start in the chain
+                        # first, and then the end
+                        for index in range(position1, position2 + 1, 1):
                             way.append(chain_coords[index])
                         road.append(way)
                     else:
+                        # if there is an end in the chain first, and then a
+                        # start, go from the start to the end of the chain
+                        # array, and from the beginning of the array to the end
                         for index in range(position1, len(chain_coords), 1):
                             way.append(chain_coords[index])
-                        for index in range(0, position2+1, 1):
+                        for index in range(0, position2 + 1, 1):
                             way.append(chain_coords[index])
                         road.append(way)
 
         if len(road) == 0:
-                return -3
+            return -3
 
+        # we find out the smallest chain of coordinates
         enroute = road[0]
         for way in road:
             if len(way) < len(enroute):
@@ -413,65 +294,271 @@ def calculation(route, stop1, stop2, cur):
         del position_stop1
         del position_stop2
 
+        # sum up the distances between the points
         length = 0
-        for index in range(len(enroute)-1):
-            length += (((enroute[index + 1][0] - enroute[index][0]) ** 2) + (
-                (enroute[index + 1][1] - enroute[index][1]) ** 2)) ** 0.5
-                
+        for index in range(len(enroute) - 1):
+            # formula for calculating the distance between
+            # two points and on a plane: sqrt((x2-x1)^2 + (y2-y1)^2)
+            length += (
+                ((enroute[index + 1][0] - enroute[index][0]) ** 2)
+                + ((enroute[index + 1][1] - enroute[index][1]) ** 2)
+            ) ** 0.5
+
         return length
 
-def TEST_calculation():
+
+# a part that works this the stops in the route
+# conting implicit edges
+def dijkstra_core(
+    route,
+    stop_num,
+    side,
+    start,
+    sum_im_ed_1,
+    routes,
+    dist,
+    prev_stop,
+    last_route,
+    priority_queue,
+    cur
+):
+    # variables that will help to write a loop
+    # depending on the direction of movement
+    sum_im_ed = sum_im_ed_1
+    end_point = 0
+    plus = 0
+    start_2 = 0
+    rt = routes[route].get_route()
+    if side == 1:
+        end_point = len(rt) - 1
+        plus = 1
+        start_2 = 0
+    else:
+        end_point = 0
+        plus = -1
+        start_2 = len(rt) - 1
+    # we can have a route like {1, 2, 3, 4, 5, 6, 3, 2, 1}
+    for k in range(start, end_point, plus):
+        if k != start and rt[k] == stop_num:
+            break
+        if sum_im_ed > dist[rt[k]]:
+            break
+        sum_im_ed += calculation(route, rt[k], rt[k + plus], cur)
+        # checking whether the road will be shorter
+        # if so, then we change the corresponding parameters
+        if dist[rt[k]] > sum_im_ed:
+            dist[rt[k]] = sum_im_ed
+            prev_stop[rt[k]] = stop_num
+            last_route[rt[k]] = route
+            heapq.heappush(
+                priority_queue,
+                (dist[rt[k]],
+                rt[k])
+            )
+    sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0], cur)
+    for k in range(start_2, start, plus):
+        if k != start and rt[k] == stop_num:
+            break
+        if sum_im_ed > dist[rt[k]]:
+            break
+        sum_im_ed += calculation(route, rt[k], rt[k + plus], cur)
+        if dist[rt[k]] > sum_im_ed:
+            dist[rt[k]] = sum_im_ed
+            prev_stop[rt[k]] = stop_num
+            last_route[rt[k]] = route
+            heapq.heappush(
+                priority_queue,
+                (dist[rt[k]],
+                rt[k])
+            )
+
+
+def routes_to_all_stops(start_stop, graph, routes, cur):
+    # stop has an id id \in [1 ... amount_of_stops]
+    # priority_queue -- a struct where we are putting a stop and a length to it
+    priority_queue = []
+    heapq.heapify(priority_queue)
+    # last_route -- a list with the last route from which we came to stop
+    last_route = [None for i in range(len(graph) + 1)]
+    # prev_stop -- a list with the last stop from with we came to stop
+    prev_stop = [None for i in range(len(graph) + 1)]
+    # the long of the way to the stop
+    dist = [math.inf for i in range(len(graph) + 1)]
+    # if a stop was visited 1 else 0
+    visited = [0 for i in range(len(graph) + 1)]
+    # pushing the start_stop to heapq
+    heapq.heappush(priority_queue, (0, start_stop))
+    dist[start_stop] = 0
+    prev_stop[start_stop] = start_stop
+
+    while len(priority_queue) != 0:
+        # taking the min path
+        tmp = heapq.heappop(priority_queue)
+        way_len = tmp[0]
+        stop_num = tmp[1]
+        visited[stop_num] = 1
+
+        # looking if there is a sense to start dijkstra
+        if way_len > dist[stop_num]:
+            continue
+        # we running all routes which a pasing througth our stop
+        for i in range(len(graph[stop_num])):
+            route = graph[stop_num][i].get_route_name()
+            pointer = graph[stop_num][i].get_pointer()
+            if_a_ring = routes[route].get_ring()
+            # adding delty for changing the route
+            sum_im_ed_1 = 1
+            # run dijkstra depending on the type of route
+            # if it a ring we shoul do dijkstra in both pathes
+            if if_a_ring != 0:
+                for j in range(len(pointer)):
+                    # moving to the right
+                    if visited[pointer[j]] == 1:
+                        continue
+                    sum_im_ed_1 += dist[stop_num]
+                    dijkstra_core(
+                        route,
+                        stop_num,
+                        1,
+                        pointer[j],
+                        sum_im_ed_1,
+                        routes,
+                        dist,
+                        prev_stop,
+                        last_route,
+                        priority_queue,
+                        cur
+                    )
+                    # moving to the left
+                    dijkstra_core(
+                        route,
+                        stop_num,
+                        -1,
+                        pointer[j],
+                        sum_im_ed_1,
+                        routes,
+                        dist,
+                        prev_stop,
+                        last_route,
+                        priority_queue,
+                        cur
+                    )
+            # if it's not a ring then one side
+            else:
+                for j in range(len(pointer)):
+                    if visited[pointer[j]] == 1:
+                        continue
+                    # moving to the right
+                    dijkstra_core(
+                        route,
+                        stop_num,
+                        1,
+                        pointer[j],
+                        sum_im_ed_1,
+                        routes,
+                        dist,
+                        prev_stop,
+                        last_route,
+                        priority_queue,
+                        cur
+                    )
+    return return_routes(last_route, prev_stop, graph, start_stop)
+
+
+def find_path(mass, start_stop, last_stop):
+    path = list()
+    path.append(last_stop)
+    print(path)
+    print(mass)
+    print(start_stop)
+    print(last_stop)
+    while last_stop != start_stop:
+        path.append(mass[last_stop])
+        last_stop = mass[last_stop]
+        #print(start_stop)
+        #print(last_stop)
+    reverse(path)
+    return path
+
+
+def return_routes(last_route, prev_stop, graph, start_stop):
+    for i in range(1, len(graph) + 1):
+        if i != start_stop:
+            return (
+                start_stop,
+                i,
+                find_path(prev_stop, start_stop, i),
+                find_path(last_route, start_stop, i),
+            )
+
+
+# the main function finding the optimal route between all pairs of stops
+def opt_routes(graph, routes, cur):
+    # we run through all the stops in the graph
+    # and find all the optimal paths from one stop to another
+    for i in range(1, len(graph)):
+        # returns dict consistes of stop and route to stop from "start_stop"
+        d = routes_to_all_stops(i, graph, routes, cur)
+        print(d)
+        # here you need to write function that will import the dict to new db
+
+def TEST_calculation(graph, routes, cur):
     try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-        'example.db')
+        key_routes = routes.keys()
+        for key in key_routes:
+            plenty = set(routes[key].get_route())
+
+            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                [key])
+            name_route = cur.fetchone()[0]
+
+            print("Route {}".format(name_route))
+
+            for s1_id in plenty:
+                for s2_id in plenty:
+                    lenth = calculation(key, s1_id,
+                        s2_id, cur)
+
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                    [s1_id])
+                    name_s1 = cur.fetchone()[0]
+
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                    [s2_id])
+
+                    print("stop1 - {}, stop2 - {}, lenth - {}".format(
+                        name_s1, cur.fetchone()[0], lenth))
+
+    except Exception as e:
+        print({e})
+        exit()
+                    
+
+def main():
+    try:
+        # Connecting to data base
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "example.db")
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
+        # graph is a dict, where key is id of the station
+        # graph[key] has a type of class edge list
+        # routes is a dict, where key is id of the route
+        # routes[key] has a type of list
+        routes = read_routes(sqlite_connection, cur)
+        graph = read_graph(sqlite_connection, cur)
 
-        print ("Enter id of route")
-        r_id = int(input())
-        print ("Enter id of first stop")
-        s1_id = int(input())
-        print ("Enter id of second stop")
-        s2_id = int(input())
-
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
+        exit()
     else:
-        print(calculation(r_id, s1_id, s2_id, cur))
+        TEST_PRINT(graph, routes, cur)
+        TEST_calculation(graph, routes, cur)
+        #opt_routes(graph, routes, cur)
     finally:
         sqlite_connection.close()
 
-def fun():
-    # graph is a dict, where key is id of the station
-    # graph[key] has a type of class edge list
-    # routes is a dict, where key is id of the route
-    # routes[key] has a type of route_info
-    graph, routes = read_db()
-
-def main():
-    # graph is a dict, where key is id of the station
-    # graph[key] has a type of class edge list
-    # routes is a dict, where key is id of the route
-    # routes[key] has a type of route_info
-    graph, routes = read_db()
-    TEST_PRINT(graph, routes)
-    TEST_calculation()
 
 if __name__ == "__main__":
     main()
-else:
-    fun()

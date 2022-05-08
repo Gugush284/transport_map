@@ -372,6 +372,7 @@ def dijkstra_core(
     prev_stop,
     last_route,
     priority_queue,
+    cur
 ):
     # variables that will help to write a loop
     # depending on the direction of movement
@@ -379,53 +380,52 @@ def dijkstra_core(
     end_point = 0
     plus = 0
     start_2 = 0
+    rt = routes[route].get_route()
     if side == 1:
-        end_point = len(routes[route]) - 1
+        end_point = len(rt) - 1
         plus = 1
         start_2 = 0
     else:
         end_point = 0
         plus = -1
-        start_2 = len(routes[route]) - 1
+        start_2 = len(rt) - 1
     # we can have a route like {1, 2, 3, 4, 5, 6, 3, 2, 1}
     for k in range(start, end_point, plus):
-        if k != start and routes[route][k] == stop_num:
+        if k != start and rt[k] == stop_num:
             break
-        if sum_im_ed > dist[routes[route][k]]:
+        if sum_im_ed > dist[rt[k]]:
             break
-        sum_im_ed += calculation(route, routes[route][k], routes[route][k + plus])
+        sum_im_ed += calculation(route, rt[k], rt[k + plus], cur)
         # checking whether the road will be shorter
         # if so, then we change the corresponding parameters
-        if dist[routes[route][k]] > sum_im_ed:
-            dist[routes[route][k]] = sum_im_ed
-            prev_stop[routes[route][k]] = stop_num
-            last_route[route[route][k]] = route
+        if dist[rt[k]] > sum_im_ed:
+            dist[rt[k]] = sum_im_ed
+            prev_stop[rt[k]] = stop_num
+            last_route[rt[k]] = route
             heapq.heappush(
                 priority_queue,
-                (dist[routes[route][k]]),
-                routes[route][k],
+                (dist[rt[k]],
+                rt[k])
             )
-    sum_im_ed += calculation(
-        route, routes[route][len(routes[route]) - 1], routes[route][0]
-    )
+    sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0], cur)
     for k in range(start_2, start, plus):
-        if k != start and routes[route][k] == stop_num:
+        if k != start and rt[k] == stop_num:
             break
-        if sum_im_ed > dist[routes[route][k]]:
+        if sum_im_ed > dist[rt[k]]:
             break
-        sum_im_ed += calculation(route, routes[route][k], routes[route][k + plus])
-        if dist[routes[route][k]] > sum_im_ed:
-            dist[routes[route][k]] = sum_im_ed
-            prev_stop[routes[route][k]] = stop_num
-            last_route[route[route][k]] = route
+        sum_im_ed += calculation(route, rt[k], rt[k + plus], cur)
+        if dist[rt[k]] > sum_im_ed:
+            dist[rt[k]] = sum_im_ed
+            prev_stop[rt[k]] = stop_num
+            last_route[rt[k]] = route
             heapq.heappush(
                 priority_queue,
-                (dist[routes[route][k]]),
-                routes[route][k],
+                (dist[rt[k]],
+                rt[k])
             )
 
 
-def routes_to_all_stops(start_stop, graph, routes):
+def routes_to_all_stops(start_stop, graph, routes, cur):
     # stop has an id id \in [1 ... amount_of_stops]
     # priority_queue -- a struct where we are putting a stop and a length to it
     priority_queue = []
@@ -479,6 +479,7 @@ def routes_to_all_stops(start_stop, graph, routes):
                         prev_stop,
                         last_route,
                         priority_queue,
+                        cur
                     )
                     # moving to the left
                     dijkstra_core(
@@ -492,6 +493,7 @@ def routes_to_all_stops(start_stop, graph, routes):
                         prev_stop,
                         last_route,
                         priority_queue,
+                        cur
                     )
             # if it's not a ring then one side
             else:
@@ -510,16 +512,23 @@ def routes_to_all_stops(start_stop, graph, routes):
                         prev_stop,
                         last_route,
                         priority_queue,
+                        cur
                     )
-    return_routes(last_route, prev_stop, graph, start_stop)
+    return return_routes(last_route, prev_stop, graph, start_stop)
 
 
 def find_path(mass, start_stop, last_stop):
     path = list()
     path.append(last_stop)
+    print(path)
+    print(mass)
+    print(start_stop)
+    print(last_stop)
     while last_stop != start_stop:
         path.append(mass[last_stop])
         last_stop = mass[last_stop]
+        #print(start_stop)
+        #print(last_stop)
     reverse(path)
     return path
 
@@ -536,23 +545,40 @@ def return_routes(last_route, prev_stop, graph, start_stop):
 
 
 # the main function finding the optimal route between all pairs of stops
-def opt_routes(graph, routes):
+def opt_routes(graph, routes, cur):
     # we run through all the stops in the graph
     # and find all the optimal paths from one stop to another
     for i in range(1, len(graph)):
         # returns dict consistes of stop and route to stop from "start_stop"
-        d = routes_to_all_stops(i, graph, routes)
+        d = routes_to_all_stops(i, graph, routes, cur)
+        print(d)
         # here you need to write function that will import the dict to new db
 
 
 def main():
-    # graph is a dict, where key is id of the station
-    # graph[key] has a type of class edge list
-    # routes is a dict, where key is id of the route
-    # routes[key] has a type of route_info
-    graph, routes = read_db()
-    TEST_PRINT(graph, routes)
-    TEST_calculation()
+    try:
+        # Connecting to data base
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "example.db")
+        sqlite_connection = sqlite3.connect(path)
+        cur = sqlite_connection.cursor()
+        # graph is a dict, where key is id of the station
+        # graph[key] has a type of class edge list
+        # routes is a dict, where key is id of the route
+        # routes[key] has a type of list
+        routes = read_routes(sqlite_connection, cur)
+        graph = read_graph(sqlite_connection, cur)
+
+    except Exception as e:
+        print({e})
+        exit()
+    else:
+        # TEST_PRINT(graph, routes)
+        # TEST_calculation()
+        opt_routes(graph, routes, cur)
+    finally:
+        sqlite_connection.close()
 
 
 if __name__ == "__main__":

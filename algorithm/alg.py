@@ -52,7 +52,8 @@ def read_routes(sqlite_connection, cur):
             id = num[0]
 
             # read chain of stops id for current stop
-            cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?", str(id))
+            cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+                [id])
             chain = cur.fetchone()[0].split()
 
             # change type of elem of chain
@@ -61,7 +62,8 @@ def read_routes(sqlite_connection, cur):
                 chain_int.append(int(elem))
 
             # finding out if the route is circular
-            cur.execute("SELECT Ring FROM routesker WHERE _id = ?", str(id))
+            cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
+                [id])
 
             routes[int(id)] = route_info(chain_int, cur.fetchone()[0])
 
@@ -89,14 +91,16 @@ def read_graph(sqlite_connection, cur):
             graph[id] = list()
 
 
-            cur.execute("SELECT Route_Num FROM stopsker WHERE _id = ?", [str(id)])
+            cur.execute("SELECT Route_Num FROM stopsker WHERE _id = ?",
+                [id])
 
             # array_routes is routes passing through the current stop
             array_routes = cur.fetchone()[0].split()
 
             for route in array_routes:
                 # Get chain of stops for current route
-                cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?", route)
+                cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+                    [route])
                 chain = cur.fetchone()[0].split()
 
                 # Find indicator of the sequence number
@@ -117,30 +121,6 @@ def read_graph(sqlite_connection, cur):
         return graph
 
 
-def read_db():
-    try:
-        # Connecting to data base
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "example.db")
-        sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
-        # graph is a dict, where key is id of the station
-        # graph[key] has a type of class edge list
-        # routes is a dict, where key is id of the route
-        # routes[key] has a type of list
-        routes = read_routes(sqlite_connection, cur)
-        graph = read_graph(sqlite_connection, cur)
-
-    except Exception as e:
-        print({e})
-        exit()
-    else:
-        return graph, routes
-    finally:
-        sqlite_connection.close()
-
-
 def TEST_PRINT(graph, routes, cur):
     try:
         # Print stops in graph
@@ -153,7 +133,7 @@ def TEST_PRINT(graph, routes, cur):
 
             for elem in graph[key]:
                 cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
-                    str(elem.get_route_name()))
+                    [elem.get_route_name()])
 
                 print(
                     "{} (id = {}) in {} by {} positions: {}".format(
@@ -171,7 +151,7 @@ def TEST_PRINT(graph, routes, cur):
         key_routes = routes.keys()
         for key in key_routes:
             cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
-                str(key))
+                [key])
 
             if routes[key].get_ring() != 0:
                 route_name = "Ring route"
@@ -206,7 +186,7 @@ def calculation(route, stop1, stop2, cur):
 
         # get a chain of stop ids
         cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
-            str(route))
+            [route])
         chain_str_id = cur.fetchone()[0].split()
 
         # translate stop ids into int
@@ -217,7 +197,7 @@ def calculation(route, stop1, stop2, cur):
 
         # get a chain of coordinates
         cur.execute("SELECT chain_cords FROM routesker WHERE _id = ?", 
-            str(route))
+            [route])
         chain_str_coords = cur.fetchone()[0].split()
 
         # compose and translate coordinates into float
@@ -230,19 +210,19 @@ def calculation(route, stop1, stop2, cur):
 
         # check if the route is circular
         cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
-            str(route))
+            [route])
         ring = int(cur.fetchone()[0])
 
         # get a coords of stop1 id and translate it into float
         cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
-            str(stop1))
+            [stop1])
         stop1_coords_str = cur.fetchone()[0].split()
         stop1_coords = (float(stop1_coords_str[0]), float(stop1_coords_str[1]))
         del stop1_coords_str
 
         # get a coords of stop2 id and translate it into float
         cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
-            str(stop2))
+            [stop2])
         stop2_coords_str = cur.fetchone()[0].split()
         stop2_coords = (float(stop2_coords_str[0]), float(stop2_coords_str[1]))
         del stop2_coords_str
@@ -325,29 +305,6 @@ def calculation(route, stop1, stop2, cur):
             ) ** 0.5
 
         return length
-
-
-def TEST_calculation():
-    try:
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "example.db")
-        sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
-
-        print("Enter id of route")
-        r_id = int(input())
-        print("Enter id of first stop")
-        s1_id = int(input())
-        print("Enter id of second stop")
-        s2_id = int(input())
-
-    except Exception as e:
-        print({e})
-    else:
-        print(calculation(r_id, s1_id, s2_id, cur))
-    finally:
-        sqlite_connection.close()
 
 
 # a part that works this the stops in the route
@@ -545,6 +502,37 @@ def opt_routes(graph, routes, cur):
         print(d)
         # here you need to write function that will import the dict to new db
 
+def TEST_calculation(graph, routes, cur):
+    try:
+        key_routes = routes.keys()
+        for key in key_routes:
+            plenty = set(routes[key].get_route())
+
+            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                [key])
+            name_route = cur.fetchone()[0]
+
+            print("Route {}".format(name_route))
+
+            for s1_id in plenty:
+                for s2_id in plenty:
+                    lenth = calculation(key, s1_id,
+                        s2_id, cur)
+
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                    [s1_id])
+                    name_s1 = cur.fetchone()[0]
+
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                    [s2_id])
+
+                    print("stop1 - {}, stop2 - {}, lenth - {}".format(
+                        name_s1, cur.fetchone()[0], lenth))
+
+    except Exception as e:
+        print({e})
+        exit()
+                    
 
 def main():
     try:
@@ -566,8 +554,8 @@ def main():
         exit()
     else:
         TEST_PRINT(graph, routes, cur)
-        #TEST_calculation()
-        opt_routes(graph, routes, cur)
+        TEST_calculation(graph, routes, cur)
+        #opt_routes(graph, routes, cur)
     finally:
         sqlite_connection.close()
 

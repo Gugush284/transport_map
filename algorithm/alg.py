@@ -141,15 +141,8 @@ def read_db():
         sqlite_connection.close()
 
 
-def TEST_PRINT(graph, routes):
+def TEST_PRINT(graph, routes, cur):
     try:
-        # Connecting to data base
-        path = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)),
-            "example.db")
-        sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
-
         # Print stops in graph
         key_graph = graph.keys()
         for key in key_graph:
@@ -197,8 +190,6 @@ def TEST_PRINT(graph, routes):
     except Exception as e:
         print({e})
         exit()
-    finally:
-        sqlite_connection.close()
 
 
 # stop1 is id of start stop
@@ -574,8 +565,8 @@ def main():
         print({e})
         exit()
     else:
-        # TEST_PRINT(graph, routes)
-        # TEST_calculation()
+        TEST_PRINT(graph, routes, cur)
+        #TEST_calculation()
         opt_routes(graph, routes, cur)
     finally:
         sqlite_connection.close()

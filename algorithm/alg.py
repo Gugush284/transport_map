@@ -502,14 +502,8 @@ def TEST_calculation():
         sqlite_connection.close()
 
 
-def fun():
-    # graph is a dict, where key is id of the station
-    # graph[key] has a type of class edge list
-    # routes is a dict, where key is id of the route
-    # routes[key] has a type of route_info
-    graph, routes = read_db()
-
-
+# a part that works this the stops in the route
+# conting implicit edges
 def dijkstra_core(
     route,
     stop_num,
@@ -522,7 +516,9 @@ def dijkstra_core(
     last_route,
     priority_queue,
 ):
-    sum_im_ed = sum_im_ed_1  # Не произойдет ли тут прико с тем, что у меня в итоге изменится сам sum_im_ed_1?
+    # variables that will help to write a loop
+    # depending on the direction of movement
+    sum_im_ed = sum_im_ed_1
     end_point = 0
     plus = 0
     start_2 = 0
@@ -534,12 +530,15 @@ def dijkstra_core(
         end_point = 0
         plus = -1
         start_2 = len(routes[route]) - 1
+    # we can have a route like {1, 2, 3, 4, 5, 6, 3, 2, 1}
     for k in range(start, end_point, plus):
         if k != start and routes[route][k] == stop_num:
             break
         if sum_im_ed > dist[routes[route][k]]:
             break
         sum_im_ed += calculation(route, routes[route][k], routes[route][k + plus])
+        # checking whether the road will be shorter
+        # if so, then we change the corresponding parameters
         if dist[routes[route][k]] > sum_im_ed:
             dist[routes[route][k]] = sum_im_ed
             prev_stop[routes[route][k]] = stop_num
@@ -602,7 +601,8 @@ def routes_to_all_stops(start_stop, graph, routes):
             route = graph[stop_num][i].get_route_name()
             pointer = graph[stop_num][i].get_pointer()
             if_a_ring = routes[route].get_ring()
-            sum_im_ed_1 = delta
+            # adding delty for changing the route
+            sum_im_ed_1 = 1
             # run dijkstra depending on the type of route
             # if it a ring we shoul do dijkstra in both pathes
             if if_a_ring != 0:
@@ -678,14 +678,22 @@ def return_routes(last_route, prev_stop, graph, start_stop):
             )
 
 
-# the main fubction that are finding the optimal route between all pairs of stops
+# the main function finding the optimal route between all pairs of stops
 def opt_routes(graph, routes):
     # we run through all the stops in the graph
     # and find all the optimal paths from one stop to another
     for i in range(1, len(graph)):
-        # returns the dict consistes of stop and route to that stop from "start_stop"
+        # returns dict consistes of stop and route to stop from "start_stop"
         d = routes_to_all_stops(i, graph, routes)
         # here you need to write function that will import the dict to new db
+
+
+def fun():
+    # graph is a dict, where key is id of the station
+    # graph[key] has a type of class edge list
+    # routes is a dict, where key is id of the route
+    # routes[key] has a type of route_info
+    graph, routes = read_db()
 
 
 def main():

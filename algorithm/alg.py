@@ -502,7 +502,7 @@ def opt_routes(graph, routes, cur):
         print(d)
         # here you need to write function that will import the dict to new db
 
-def TEST_calculation(graph, routes, cur):
+def TEST_calculation(routes, cur):
     try:
         key_routes = routes.keys()
         for key in key_routes:
@@ -512,7 +512,7 @@ def TEST_calculation(graph, routes, cur):
                 [key])
             name_route = cur.fetchone()[0]
 
-            print("Route {}".format(name_route))
+            print("Route {}: {}".format(name_route, routes[key].get_route()))
 
             for s1_id in plenty:
                 for s2_id in plenty:
@@ -526,7 +526,7 @@ def TEST_calculation(graph, routes, cur):
                     cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
                     [s2_id])
 
-                    print("stop1 - {}, stop2 - {}, lenth - {}".format(
+                    print("Between {} and {} - {}".format(
                         name_s1, cur.fetchone()[0], lenth))
 
     except Exception as e:
@@ -554,7 +554,7 @@ def main():
         exit()
     else:
         TEST_PRINT(graph, routes, cur)
-        TEST_calculation(graph, routes, cur)
+        TEST_calculation(routes, cur)
         #opt_routes(graph, routes, cur)
     finally:
         sqlite_connection.close()

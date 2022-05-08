@@ -44,8 +44,7 @@ def read_routes(sqlite_connection, cur):
     try:
         # Look for amount of routes and write to
         # a variable named "amount"
-        command = "SELECT _id FROM routesker"
-        cur.execute(command)
+        cur.execute("SELECT _id FROM routesker")
         amount = cur.fetchall()
 
         for num in amount:
@@ -53,9 +52,7 @@ def read_routes(sqlite_connection, cur):
             id = num[0]
 
             # read chain of stops id for current stop
-            command = "SELECT chain_stops FROM routesker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+            cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?", str(id))
             chain = cur.fetchone()[0].split()
 
             # change type of elem of chain
@@ -64,42 +61,12 @@ def read_routes(sqlite_connection, cur):
                 chain_int.append(int(elem))
 
             # finding out if the route is circular
-            command = "SELECT Ring FROM routesker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+            cur.execute("SELECT Ring FROM routesker WHERE _id = ?", str(id))
 
             routes[int(id)] = route_info(chain_int, cur.fetchone()[0])
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         sqlite_connection.close()
         exit()
     else:
@@ -112,8 +79,7 @@ def read_graph(sqlite_connection, cur):
     try:
         # Look for amount of stops and write to
         # a variable named "amount"
-        command = "SELECT _id FROM stopsker"
-        cur.execute(command)
+        cur.execute("SELECT _id FROM stopsker")
         amount = cur.fetchall()
 
         for num in amount:
@@ -122,18 +88,15 @@ def read_graph(sqlite_connection, cur):
 
             graph[id] = list()
 
-            command = "SELECT Route_Num FROM stopsker WHERE _id = "
-            command += str(id)
-            cur.execute(command)
+
+            cur.execute("SELECT Route_Num FROM stopsker WHERE _id = ?", [str(id)])
 
             # array_routes is routes passing through the current stop
             array_routes = cur.fetchone()[0].split()
 
             for route in array_routes:
                 # Get chain of stops for current route
-                command = "SELECT chain_stops FROM routesker WHERE _id = "
-                command += route
-                cur.execute(command)
+                cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?", route)
                 chain = cur.fetchone()[0].split()
 
                 # Find indicator of the sequence number
@@ -146,36 +109,8 @@ def read_graph(sqlite_connection, cur):
                     counter += 1
                 graph[id].append(edge(int(route), pointer))
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        sqlite_connection.close()
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         sqlite_connection.close()
         exit()
     else:
@@ -185,7 +120,9 @@ def read_graph(sqlite_connection, cur):
 def read_db():
     try:
         # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "example.db")
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "example.db")
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
         # graph is a dict, where key is id of the station
@@ -195,29 +132,8 @@ def read_db():
         routes = read_routes(sqlite_connection, cur)
         graph = read_graph(sqlite_connection, cur)
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         exit()
     else:
         return graph, routes
@@ -228,7 +144,9 @@ def read_db():
 def TEST_PRINT(graph, routes):
     try:
         # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "example.db")
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "example.db")
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
 
@@ -236,15 +154,13 @@ def TEST_PRINT(graph, routes):
         key_graph = graph.keys()
         for key in key_graph:
 
-            command = "SELECT Name_stop FROM stopsker WHERE _id = "
-            command += str(key)
-            cur.execute(command)
+            cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                [str(key)])
             name = cur.fetchone()[0]
 
             for elem in graph[key]:
-                command = "SELECT Name_route FROM routesker WHERE _id = "
-                command += str(elem.get_route_name())
-                cur.execute(command)
+                cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                    str(elem.get_route_name()))
 
                 print(
                     "{} (id = {}) in {} by {} positions: {}".format(
@@ -261,9 +177,8 @@ def TEST_PRINT(graph, routes):
 
         key_routes = routes.keys()
         for key in key_routes:
-            command = "SELECT Name_route FROM routesker WHERE _id = "
-            command += str(key)
-            cur.execute(command)
+            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                str(key))
 
             if routes[key].get_ring() != 0:
                 route_name = "Ring route"
@@ -272,35 +187,15 @@ def TEST_PRINT(graph, routes):
 
             print(
                 "{} {}: {}".format(
-                    route_name, cur.fetchone()[0], routes[key].get_route()
+                    route_name, cur.fetchone()[0],
+                    routes[key].get_route()
                 )
             )
 
         print("\n", end="")
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        exit()
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        exit()
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        exit()
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        exit()
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        exit()
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        exit()
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        exit()
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         exit()
     finally:
         sqlite_connection.close()
@@ -319,9 +214,8 @@ def calculation(route, stop1, stop2, cur):
     try:
 
         # get a chain of stop ids
-        command = "SELECT chain_stops FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+        cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
+            str(route))
         chain_str_id = cur.fetchone()[0].split()
 
         # translate stop ids into int
@@ -331,9 +225,8 @@ def calculation(route, stop1, stop2, cur):
         del chain_str_id
 
         # get a chain of coordinates
-        command = "SELECT chain_cords FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+        cur.execute("SELECT chain_cords FROM routesker WHERE _id = ?", 
+            str(route))
         chain_str_coords = cur.fetchone()[0].split()
 
         # compose and translate coordinates into float
@@ -345,50 +238,26 @@ def calculation(route, stop1, stop2, cur):
         del chain_str_coords
 
         # check if the route is circular
-        command = "SELECT Ring FROM routesker WHERE _id = "
-        command += str(route)
-        cur.execute(command)
+        cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
+            str(route))
         ring = int(cur.fetchone()[0])
 
         # get a coords of stop1 id and translate it into float
-        command = "SELECT Cords FROM stopsker WHERE _id = "
-        command += str(stop1)
-        cur.execute(command)
+        cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
+            str(stop1))
         stop1_coords_str = cur.fetchone()[0].split()
         stop1_coords = (float(stop1_coords_str[0]), float(stop1_coords_str[1]))
         del stop1_coords_str
 
         # get a coords of stop2 id and translate it into float
-        command = "SELECT Cords FROM stopsker WHERE _id = "
-        command += str(stop2)
-        cur.execute(command)
+        cur.execute("SELECT Cords FROM stopsker WHERE _id = ?",
+            str(stop2))
         stop2_coords_str = cur.fetchone()[0].split()
         stop2_coords = (float(stop2_coords_str[0]), float(stop2_coords_str[1]))
         del stop2_coords_str
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-        return -1
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-        return -1
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-        return -1
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-        return -1
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-        return -1
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-        return -1
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-        return -1
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
         return -2
     else:
 
@@ -469,7 +338,9 @@ def calculation(route, stop1, stop2, cur):
 
 def TEST_calculation():
     try:
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "example.db")
+        path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "example.db")
         sqlite_connection = sqlite3.connect(path)
         cur = sqlite_connection.cursor()
 
@@ -480,22 +351,8 @@ def TEST_calculation():
         print("Enter id of second stop")
         s2_id = int(input())
 
-    except sqlite3.ProgrammingError:
-        print("ProgrammingError in DATA BASE")
-    except sqlite3.OperationalError:
-        print("OperationalError in DATA BASE")
-    except sqlite3.NotSupportedError:
-        print("NotSupportedError in DATA BASE")
-    except sqlite3.IntegrityError:
-        print("IntegrityError in DATA BASE")
-    except sqlite3.DatabaseError:
-        print("DatabaseError in DATA BASE")
-    except sqlite3.Error:
-        print("Error in DATA BASE")
-    except sqlite3.Warning:
-        print("Warning in DATA BASE")
-    except ValueError:
-        print("Worng data format in DATA BASE")
+    except Exception as e:
+        print({e})
     else:
         print(calculation(r_id, s1_id, s2_id, cur))
     finally:
@@ -688,14 +545,6 @@ def opt_routes(graph, routes):
         # here you need to write function that will import the dict to new db
 
 
-def fun():
-    # graph is a dict, where key is id of the station
-    # graph[key] has a type of class edge list
-    # routes is a dict, where key is id of the route
-    # routes[key] has a type of route_info
-    graph, routes = read_db()
-
-
 def main():
     # graph is a dict, where key is id of the station
     # graph[key] has a type of class edge list
@@ -708,5 +557,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-else:
-    fun()

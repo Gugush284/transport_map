@@ -21,10 +21,12 @@ class STOP:
     def get_y(self):
         return self.ordinate
 
-def read_stops(sql_connection, cur):
+def read_stops(sql_connection):
     stops = list()
 
     try:
+        cur = sql_connection.cursor()
+
         # Get all stop ids
         cur.execute("SELECT _id FROM stopsker")
         amount = cur.fetchall()
@@ -57,10 +59,10 @@ def read_stops(sql_connection, cur):
     else:
         return stops
 
-# sql - sql connection
-# cur - cursor 
-def read_optimal_route(stop1, stop2, sql, cur):
+
+def read_way(stop1, stop2, sql_connection):
     try:
+        cur = sql_connection.cursor()
         # For two stops get optimal route between them
 
         # Get id of stop1
@@ -71,7 +73,7 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
         # if we don't have stop1
         if Input is None:
-            return -1, [], [] 
+            return [], []
         else:
             id1 = int(Input[0])
 
@@ -83,7 +85,7 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
         # if we don't have stop2
         if Input is None:
-            return -2, [], [] 
+            return [], []
         else:
             id2 = int(Input[0])
 
@@ -94,7 +96,7 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
         # if no way 
         if Input is None:
-            return -3, [], []
+            return [], []
 
         # way_str consists of names
         way_str = list()
@@ -119,26 +121,11 @@ def read_optimal_route(stop1, stop2, sql, cur):
 
     except Exception as e:
         print({e})
-        sql.close()
+        sql_connection.close()
         exit()
     else:
-        return 0, way_str, transfer
+        return way_str, transfer
 
-def read_db(stop1, stop2, sql_connection, cursor):
-    stops = read_stops(sql_connection, cursor)
-
-    errno, way, transfer = read_optimal_route(stop1, stop2,
-     sql_connection, cursor)
-    if errno == -1:
-        print("No such start station")
-    elif errno == -2:
-        print("No such final station")
-    elif errno == -3:
-        print("No route for this stations")
-    else:
-        return stops, way, transfer
-
-    return stops, [], []
 
 def connection():
     try:
@@ -148,13 +135,12 @@ def connection():
             'example_server.db'
         )
         sqlite_connection = sqlite3.connect(path)
-        cur = sqlite_connection.cursor()
 
     except Exception as e:
         print({e})
         exit()
     else:
-        return sqlite_connection, cur
+        return sqlite_connection
 
 def TEST_PRINT_STOPS(stops, way, transfer):
     print("\nOptimal way:")
@@ -168,16 +154,20 @@ def TEST_PRINT_STOPS(stops, way, transfer):
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))
 
-def read(stop1, stop2):
-    sql_connection, cursor = connection()
+def main():
+    try:
+        sql_connection = connection()
 
-    # stops is a list of class STOP elements
-    # way is list of stops in route order
-    # transfer is list of [name of stop, name of route] 
-    stops, way, transfer = read_db(stop1, stop2, sql_connection, cursor)
+        # stops is a list of class STOP elements
+        # way is list of stops in route order
+        # transfer is list of [name of stop, name of route] 
+        way, transfer = read_way("STOP 7", "STOP 9", sql_connection)
+        stops = read_stops(sql_connection)
+    finally:
+        sql_connection.close()
+        TEST_PRINT_STOPS(stops, way, transfer)
 
-    return stops, way, transfer
 
 if __name__ == "__main__":
-    stops, way, transfer = read("STOP 7", "STOP 9")
-    TEST_PRINT_STOPS(stops, way, transfer)
+    main()
+    

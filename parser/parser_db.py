@@ -13,6 +13,11 @@ try:
                                 chain_stops TEXT NOT NULL,
                                 chain_cords TEXT NOT NULL,
                                 Ring INTEGER);'''
+    
+    cursor = sqlite_connection.cursor()             #создаём курсор
+    cursor.execute(sqlite_create_table_query)       #заставляем его создать нужные нам таблицы
+    sqlite_connection.commit()
+    print("Таблица маршрутов созданы SQLite создана")
                                          
     sqlite_create_table_query = '''CREATE TABLE stopsker (    
                                 _id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -20,10 +25,10 @@ try:
                                 Cords TEXT NOT NULL,
                                 Route_Num text NOT NULL);'''
     
-    cursor = sqlite_connection.cursor()             #создаём курсор
     cursor.execute(sqlite_create_table_query)       #заставляем его создать нужные нам таблицы
     sqlite_connection.commit()
-    print("Таблицы остановок и маршрутов созданы SQLite создана")
+    print("Таблица остановок созданы SQLite создана")
+    
     cursor.close()                                  #закрываем курсор
 
 except sqlite3.Error as error:
@@ -51,8 +56,8 @@ def collect_data_stops():                            #функция, скачи
     s = requests.Session()                          #запускаем сессию, отправляем запрос
     
     i=1                                                 #переменная счета страниц 
-    #for i in range(1,10):
-    while True:                                        #цикл по страницам
+    for i in range(1,10):
+    #while True:                                        #цикл по страницам
                                                             #конструируем ссылку на нашу страницу:
         url=f"https://data.mos.ru/api/rows/getresultwithcount?datasetId=752&search=&sortField=Number&sortOrder=ASC&versionNumber=7&releaseNumber=335&pageNumber={i}"
             
@@ -96,8 +101,8 @@ def collect_data_routes():                            #функция, скач�
     s = requests.Session()                          #запускаем сессию, отправляем запрос
     
     i=1                                                 #переменная счета страниц 
-    #for i in range(1,10):
-    while True:                                        #цикл по страницам
+    for i in range(1,10):
+    #while True:                                        #цикл по страницам
                                                             #конструируем ссылку на нашу страницу:
         url=f"https://data.mos.ru/api/rows/getresultwithcount?datasetId=3221&search=&sortField=Number&sortOrder=ASC&versionNumber=1&releaseNumber=103&pageNumber={i}"
             

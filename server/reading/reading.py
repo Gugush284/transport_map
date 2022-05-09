@@ -118,10 +118,10 @@ def read_way(stop1, stop2, sql_connection):
             one_transfer = elem.split()
             
             cur.execute("SELECT Name_stop, Cords FROM stopsker WHERE _id = ?",
-            one_transfer[0])
+            [one_transfer[0]])
             info = cur.fetchone()
             cords = info[1].split()
-
+            
             cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
             [one_transfer[1]])
             name_route = cur.fetchone()[0]
@@ -188,11 +188,11 @@ def main():
         # stops is a list of class STOP elements
         # way is list of stops in route order
         # transfer is list of [name of stop, name of route] 
-        way, transfer = read_way("STOP 7", "STOP 9", sql_connection)
+        way, transfer = read_way("Мкр. Дубки", "Бескудниково", sql_connection)
         stops = read_stops(sql_connection)
+        TEST_PRINT_STOPS(stops, way, transfer)
     finally:
         sql_connection.close()
-        TEST_PRINT_STOPS(stops, way, transfer)
 
 
 if __name__ == "__main__":

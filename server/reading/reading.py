@@ -99,41 +99,69 @@ def read_way(stop1, stop2, sql_connection):
             return [], []
 
         # way_str consists of names
-        way_str = list()
-        for elem in Input[0].split():
-            cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
-                [elem])
-            way_str.append(cur.fetchone()[0])
+        way = list()
+        for element in Input[0].split():
+            cur.execute("SELECT Name_stop, Cords FROM stopsker WHERE _id = ?",
+                [element])
+            info = cur.fetchone()
+            cords = info[1].split()
+            way.append(STOP(
+                element,
+                info[0],
+                float(cords[0]),
+                float(cords[1])
+            ))
+            
 
         transfer = list()
         for elem in Input[1].split(";"):
             one_transfer = elem.split()
             
-            cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+            cur.execute("SELECT Name_stop, Cords FROM stopsker WHERE _id = ?",
             one_transfer[0])
-            name_stop = cur.fetchone()[0]
+            info = cur.fetchone()
+            cords = info[1].split()
 
             cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
             [one_transfer[1]])
             name_route = cur.fetchone()[0]
             
-            transfer.append([name_stop, name_route])
+            transfer.append([
+                STOP(
+                    one_transfer[0],
+                    info[0],
+                    float(cords[0]),
+                    float(cords[1])
+                    ),
+                name_route])
 
     except Exception as e:
         print({e})
         sql_connection.close()
         exit()
     else:
-        return way_str, transfer
+        return way, transfer
 
 def TEST_PRINT_STOPS(stops, way, transfer):
     print("\nOptimal way:")
-    print("{}\n".format(way))
+    for element in way:
+        print(
+            "   {} {} {}".format(
+                element.get_name(),
+                element.get_x(),
+                element.get_y()
+        ))
 
-    print("Transfer:")
-    print("{}\n".format(transfer))
+    print("\nTransfer:")
+    for elem in transfer:
+        print("Name of stop: {}, x: {}, y: {}, to route: {}".format(
+            elem[0].get_name(),
+            elem[0].get_x(),
+            elem[0].get_y(),
+            elem[1]
+        ))
 
-    print("Stops")
+    print("\nStops")
     for stop in stops:
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))

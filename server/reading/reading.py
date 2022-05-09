@@ -1,6 +1,5 @@
 import sqlite3
 import os
-import connection_server
 
  # Class consists of info about current stop
 class STOP:
@@ -139,9 +138,24 @@ def TEST_PRINT_STOPS(stops, way, transfer):
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))
 
+def connection():
+    try:
+        path = os.path.join(
+            os.path.dirname(
+                os.path.abspath(__file__)),
+            'example_server.db'
+        )
+        sqlite_connection = sqlite3.connect(path)
+
+    except Exception as e:
+        print({e})
+        exit()
+    else:
+        return sqlite_connection
+
 def main():
     try:
-        sql_connection = connection_server.connection()
+        sql_connection = connection()
 
         # stops is a list of class STOP elements
         # way is list of stops in route order

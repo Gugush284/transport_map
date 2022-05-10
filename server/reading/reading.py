@@ -73,7 +73,7 @@ def read_way(stop1, stop2, sql_connection):
 
         # if we don't have stop1
         if Input is None:
-            return [], []
+            return [], [], []
         else:
             id1 = int(Input[0])
 
@@ -85,18 +85,18 @@ def read_way(stop1, stop2, sql_connection):
 
         # if we don't have stop2
         if Input is None:
-            return [], []
+            return [], [], []
         else:
             id2 = int(Input[0])
 
         # Get optimal way and transfers in it  
-        cur.execute("SELECT route, transfer FROM way WHERE id1 = ? and id2 = ?",
+        cur.execute("SELECT route, transfer, cords FROM way WHERE id1 = ? and id2 = ?",
         [id1, id2])
         Input = cur.fetchone()
 
         # if no way 
         if Input is None:
-            return [], []
+            return [], [], []
 
         # way_str consists of names
         way = list()
@@ -135,14 +135,21 @@ def read_way(stop1, stop2, sql_connection):
                     ),
                 name_route])
 
+        way_cords = list()
+        for item in (Input[2].split('\n')):
+            way_cords.append(item.split())
+        way_cords = [
+            [float(item[0]), float(item[1])]
+            for item in way_cords]
+
     except Exception as e:
         print({e})
         sql_connection.close()
         exit()
     else:
-        return way, transfer
+        return way_cords, way, transfer
 
-def TEST_PRINT_STOPS(stops, way, transfer):
+def TEST_PRINT_STOPS(stops, way, transfer, way_cords):
     print("\nOptimal way:")
     for element in way:
         print(
@@ -166,6 +173,9 @@ def TEST_PRINT_STOPS(stops, way, transfer):
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))
 
+    print("\nWay in cords:")
+    print(way_cords)
+
 def connection():
     try:
         path = os.path.join(
@@ -188,9 +198,10 @@ def main():
         # stops is a list of class STOP elements
         # way is list of stops in route order
         # transfer is list of [name of stop, name of route] 
-        way, transfer = read_way("Мкр. Дубки", "Бескудниково", sql_connection)
+        way_cords, way, transfer = read_way("Dubki", "Beskudnikovo", sql_connection)
         stops = read_stops(sql_connection)
-        TEST_PRINT_STOPS(stops, way, transfer)
+
+        TEST_PRINT_STOPS(stops, way, transfer, way_cords)
     finally:
         sql_connection.close()
 

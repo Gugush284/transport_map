@@ -36,6 +36,9 @@ class STOP:
     def get_y(self):
         return self.ordinate
 
+# Getting all stops in the database 
+# with name, x, y and id
+# Output is a list of class STOP
 def read_stops(sql_connection):
     stops = list()
 
@@ -74,7 +77,8 @@ def read_stops(sql_connection):
     else:
         return stops
 
-
+# Read optimal way in class STOP, way in coords
+# and transfers in the way
 def read_way(stop1, stop2, sql_connection):
     try:
         cur = sql_connection.cursor()
@@ -88,7 +92,7 @@ def read_way(stop1, stop2, sql_connection):
 
         # if we don't have stop1
         if Input is None:
-            return [], []
+            return [], [], []
         else:
             id1 = int(Input[0])
 
@@ -100,20 +104,21 @@ def read_way(stop1, stop2, sql_connection):
 
         # if we don't have stop2
         if Input is None:
-            return [], []
+            return [], [], []
         else:
             id2 = int(Input[0])
 
-        # Get optimal way and transfers in it  
-        cur.execute("SELECT route, transfer FROM way WHERE id1 = ? and id2 = ?",
+        # Get optimal way, way in coords and transfers in it  
+        cur.execute("SELECT route, transfer, cords FROM way WHERE id1 = ? and id2 = ?",
         [id1, id2])
         Input = cur.fetchone()
 
         # if no way 
         if Input is None:
-            return [], []
+            return [], [], []
 
-        # way_str consists of names
+        # Convert the received ids into the class STOP 
+        # And filling in the list "way"
         way = list()
         for element in Input[0].split():
             cur.execute("SELECT Name_stop, Cords FROM stopsker WHERE _id = ?",
@@ -127,7 +132,9 @@ def read_way(stop1, stop2, sql_connection):
                 float(cords[1])
             ))
             
-
+        # Convert the received stop ids into the class STOP,
+        # Convert the received route id into str "name route"
+        # And filling in the list "transfer" by [class stop, name route]
         transfer = list()
         for elem in Input[1].split(";"):
             one_transfer = elem.split()
@@ -150,14 +157,25 @@ def read_way(stop1, stop2, sql_connection):
                     ),
                 name_route])
 
+        # We get the coordinates as a string, clear 
+        # from \n and \r, clear from spaces, 
+        # converte the string to list of [x, y], 
+        # where x and y are float
+        way_cords = list()
+        for item in (Input[2].split('\n')):
+            way_cords.append(item.split())
+        way_cords = [
+            [float(item[0]), float(item[1])]
+            for item in way_cords]
+
     except Exception as e:
         print({e})
         sql_connection.close()
         exit()
     else:
-        return way, transfer
+        return way_cords, way, transfer
 
-def TEST_PRINT_STOPS(stops, way, transfer):
+def TEST_PRINT_STOPS(stops, way, transfer, way_cords):
     print("\nOptimal way:")
     for element in way:
         print(
@@ -181,13 +199,20 @@ def TEST_PRINT_STOPS(stops, way, transfer):
         print("{}) {} - {} {}".format(stop.get_id(),
         stop.get_name(), stop.get_x(), stop.get_y()))
 
+    print("\nWay in cords:")
+    print(way_cords)
+
+
+# Getting a connection to the database
 def connection():
     try:
+        # Getting the path to the db file
         path = os.path.join(
             os.path.dirname(
                 os.path.abspath(__file__)),
             'example_server.db'
         )
+        # Connecting
         sqlite_connection = sqlite3.connect(path)
 
     except Exception as e:
@@ -217,34 +242,32 @@ map = folium.Map(location=[55.752004, 37.617734],
 marker_cluster = MarkerCluster().add_to(map)
 
 #creating map consisting
-#of all bus stations
+#of all bus stops
 
 sql_connection = connection()
 stops = read_stops(sql_connection)
 sql_connection.close()
 
-#taking stops coordinates from database
+#getting stops coordinates from database
 
-cities = []
+stopies = []
 for stop in stops:
-    cities.append(stop.get_name())
+    stopies.append(stop.get_name())
 
-#get list of stition names for autocomplete
+#get list of station names for autocomplete
 
 for stop in stops:
-    print(stop.abscissa)
-    print(stop.ordinate)
-    folium.CircleMarker(location=[stop.ordinate, stop.abscissa], radius=9, popup = stop.name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(marker_cluster)
+    folium.CircleMarker(location=[stop.ordinate, stop.abscissa], radius=9, popup = stop.get_name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(marker_cluster)
 
 #fill map with station markers
 
-map.save("app/templates/mapa.html")
+map.save("app/templates/basic_map.html")
 
 #save map into server templates
 
 @app.route('/_autocomplete', methods=['GET'])
 def autocomplete(): 
-    return Response(json.dumps(cities), mimetype='application/json')
+    return Response(json.dumps(stopies), mimetype='application/json')
 
 #autocomplete handler
 
@@ -267,12 +290,15 @@ def index():
         #getting first and last stations from input form
 
         sql_connection = connection()
-        way, transfer = read_way(bus1, bus2, sql_connection)
+        way_cords, way, transfer = read_way(bus1, bus2, sql_connection)
         sql_connection.close()
-
         #getting route list and list of transfers
         #by reading from database
-
+        #tranfer - class with coordinates of transfer 
+        #stops and names of needed routes
+        #way - class with coordinates and 
+        #names of route stops
+        #way_cords - list of coordinates of route points
         for ways in way:
             coord.append([ways.ordinate, ways.abscissa])
 
@@ -292,49 +318,47 @@ def index():
 
             i = 0
 
-            #flag for emphasize boarding stop
+            #flag for highlighting boarding stop
 
             for ways in way:
                 folium.CircleMarker(location=[ways.ordinate, ways.abscissa], popup = ways.name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
             
-            #putting route stop on the map
+            #putting route stops on the map
 
             for transfers in transfer:
                 if i == 0:
                     folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\nlanding on: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)          
-                    
+                    i = i + 1
                     #highlight first stop                
-                else: 
-                    
+                else:                     
                     folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\ntransfer to: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
                     
-                    #highlight stops with transfer              
-                i = i + 1            
+                    #highlight stops with transfer                      
             i = 1
             coords = []
             #creating list of points of route
-            #on transfer stops line changes color
+            #line changes color on transfer stops
             color = 'red'
             #basic color of route lines
-            for ways in way:
-                coords.append([ways.ordinate, ways.abscissa])
-                #later not ways but list of all route points
-                #including rotates
+            for way_cord in way_cords:
+                coords.append([way_cord[1], way_cord[0]])
+
+                #building route through all
+                #stops and turns
                 if i < len(transfer):
                     #when still have stops with transfer
-                    if (ways.ordinate == transfer[i][0].ordinate and ways.abscissa == transfer[i][0].abscissa):
-                        #if point of routes is transfer station
+                    if (way_cord[1] == transfer[i][0].ordinate and way_cord[0] == transfer[i][0].abscissa):
+                        #if point of routes is transfer stop
                         #changing color of route lines
                         i = i + 1
                         folium.PolyLine(coords, color=color).add_to(map1)
                         #draw lines on the map
                         color = change_color(color)
                         coords.clear()
-                        coords.append([ways.ordinate, ways.abscissa])
-            
+                        coords.append([way_cord[1], way_cord[0]])
             folium.PolyLine(coords, color=change_color(color)).add_to(map1)
             coords.clear()
-            map1.save("app/templates/map1.html")
+            map1.save("app/templates/route_map.html")
 
             #building map with route
             #and returning page with builded route

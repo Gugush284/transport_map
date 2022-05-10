@@ -195,8 +195,18 @@ def connection():
         exit()
     else:
         return sqlite_connection
-print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 
+def change_color(color):
+    if color == 'red':
+        color = 'blue'
+    elif color == 'blue':
+        color = 'green'
+    elif color == 'green':
+        color = 'purple'
+    elif color == 'purple':
+        color = 'red'
+    return color
+#change color of route lines when transfer
 
 map = folium.Map(location=[55.752004, 37.617734],
                 min_zoom=8, 
@@ -206,58 +216,142 @@ map = folium.Map(location=[55.752004, 37.617734],
 
 marker_cluster = MarkerCluster().add_to(map)
 
-# map creating
-coord = []
-# координаты маршрута
+#creating map consisting
+#of all bus stations
 
 sql_connection = connection()
 stops = read_stops(sql_connection)
+sql_connection.close()
+
+#taking stops coordinates from database
+
 cities = []
 for stop in stops:
     cities.append(stop.get_name())
-print(cities)
-sql_connection.close()
 
-
+#get list of stition names for autocomplete
 
 for stop in stops:
     print(stop.abscissa)
     print(stop.ordinate)
     folium.CircleMarker(location=[stop.ordinate, stop.abscissa], radius=9, popup = stop.name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(marker_cluster)
+
+#fill map with station markers
+
 map.save("app/templates/mapa.html")
-# map fill
+
+#save map into server templates
+
 @app.route('/_autocomplete', methods=['GET'])
 def autocomplete(): 
     return Response(json.dumps(cities), mimetype='application/json')
 
+#autocomplete handler
 
 @app.route('/', methods=['GET', 'POST'])
+
+#default URL page handler
+
 def index():
+    coord = []
+    #coordinates of route
     bus1 = ''
+    #name of first stop
     bus2 = ''
+    #name of last stop
     form = SearchForm(request.form)
     if form.validate_on_submit():
         bus1 = form.autocomp.data
         bus2 = form.autocomp1.data
-        print(bus1)
-        print(bus2)
+
+        #getting first and last stations from input form
+
         sql_connection = connection()
         way, transfer = read_way(bus1, bus2, sql_connection)
-        coord.clear()
-        # coord - координаты остановок маршрута
-        for ways in way:
-            print(ways.name, ' ', ways.abscissa, ' ', ways.ordinate)
-            coord.append([ways.ordinate, ways.abscissa])
-        for transfers in transfer:
-            print(transfers[0].name, transfers[0].abscissa, transfers[0].ordinate, transfers[1])
         sql_connection.close()
-        map1 = map
+
+        #getting route list and list of transfers
+        #by reading from database
+
+        for ways in way:
+            coord.append([ways.ordinate, ways.abscissa])
+
+        #getting list of route coordinates into coord
+
         if len(coord)>0:
-            folium.PolyLine(coord, color="red").add_to(map1)
-        map1.save("app/templates/mapa.html")
-        return render_template("search.html", form=form)
-    return render_template("search.html", form=form)
+            
+            #if route is builded
+            
+            map1 = folium.Map(location=[way[0].ordinate, way[0].abscissa],
+                min_zoom=8, 
+                max_zoom=18, 
+              zoom_start = 15,
+              height='80%')
+
+            #creating map for bulding route
+
+            i = 0
+
+            #flag for emphasize boarding stop
+
+            for ways in way:
+                folium.CircleMarker(location=[ways.ordinate, ways.abscissa], popup = ways.name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
+            
+            #putting route stop on the map
+
+            for transfers in transfer:
+                if i == 0:
+                    folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\nlanding on: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)          
+                    
+                    #highlight first stop                
+                else: 
+                    
+                    folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\ntransfer to: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
+                    
+                    #highlight stops with transfer              
+                i = i + 1            
+            i = 1
+            coords = []
+            #creating list of points of route
+            #on transfer stops line changes color
+            color = 'red'
+            #basic color of route lines
+            for ways in way:
+                coords.append([ways.ordinate, ways.abscissa])
+                #later not ways but list of all route points
+                #including rotates
+                if i < len(transfer):
+                    #when still have stops with transfer
+                    if (ways.ordinate == transfer[i][0].ordinate and ways.abscissa == transfer[i][0].abscissa):
+                        #if point of routes is transfer station
+                        #changing color of route lines
+                        i = i + 1
+                        folium.PolyLine(coords, color=color).add_to(map1)
+                        #draw lines on the map
+                        color = change_color(color)
+                        coords.clear()
+                        coords.append([ways.ordinate, ways.abscissa])
+            
+            folium.PolyLine(coords, color=change_color(color)).add_to(map1)
+            coords.clear()
+            map1.save("app/templates/map1.html")
+
+            #building map with route
+            #and returning page with builded route
+            return render_template("login.html", form=form)
+            
+    return render_template("search.html", form=form, message = "No such routes found")
+    #if route in not builded
+    #message is printed on
+    #main URL page
 
 @app.route('/login', methods=['GET', 'POST'])
+
+#handler of page with stop route
+
 def login():
+    if request.method == 'POST':
+    #return to main page
+    #when button is pressed
+        return render_template("search.html")
     return render_template("login.html")

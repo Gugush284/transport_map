@@ -11,8 +11,8 @@ import folium
 from folium.plugins import MarkerCluster
 
 class SearchForm(FlaskForm):
-    autocomp = TextField('Station 1', id = 'city_autocomplete', validators = [DataRequired()])
-    autocomp1 = TextField('Station 2', id = 'ity_autocomplete', validators = [DataRequired()])
+    autocomp = TextField('First stop', id = 'city_autocomplete', validators = [DataRequired()])
+    autocomp1 = TextField('Last stop', id = 'ity_autocomplete', validators = [DataRequired()])
     submit = SubmitField()
 
 

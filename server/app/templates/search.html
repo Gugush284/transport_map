@@ -1,4 +1,4 @@
-{% include 'mapa.html' %}
+{% include 'basic_map.html' %}
 <head>
     <meta charset="utf-8">
  <title>Bus Maps</title>
@@ -7,6 +7,9 @@
   <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
   </head>
 <body style="background-color: #90ee90">
+{% if message %}
+        <p>{{ message }}</p>
+{% endif %}
 <form action="" method="post">
 {{ form.autocomp.label }}: {{ form.autocomp }}
 {{ form.csrf_token }}

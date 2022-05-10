@@ -21,6 +21,9 @@ class STOP:
     def get_y(self):
         return self.ordinate
 
+# Getting all stops in the database 
+# with name, x, y and id
+# Output is a list of class STOP
 def read_stops(sql_connection):
     stops = list()
 
@@ -59,7 +62,8 @@ def read_stops(sql_connection):
     else:
         return stops
 
-
+# Read optimal way in class STOP, way in coords
+# and transfers in the way
 def read_way(stop1, stop2, sql_connection):
     try:
         cur = sql_connection.cursor()
@@ -89,7 +93,7 @@ def read_way(stop1, stop2, sql_connection):
         else:
             id2 = int(Input[0])
 
-        # Get optimal way and transfers in it  
+        # Get optimal way, way in coords and transfers in it  
         cur.execute("SELECT route, transfer, cords FROM way WHERE id1 = ? and id2 = ?",
         [id1, id2])
         Input = cur.fetchone()
@@ -98,7 +102,8 @@ def read_way(stop1, stop2, sql_connection):
         if Input is None:
             return [], [], []
 
-        # way_str consists of names
+        # Convert the received ids into the class STOP 
+        # And filling in the list "way"
         way = list()
         for element in Input[0].split():
             cur.execute("SELECT Name_stop, Cords FROM stopsker WHERE _id = ?",
@@ -112,7 +117,9 @@ def read_way(stop1, stop2, sql_connection):
                 float(cords[1])
             ))
             
-
+        # Convert the received stop ids into the class STOP,
+        # Convert the received route id into str "name route"
+        # And filling in the list "transfer" by [class stop, name route]
         transfer = list()
         for elem in Input[1].split(";"):
             one_transfer = elem.split()
@@ -135,6 +142,10 @@ def read_way(stop1, stop2, sql_connection):
                     ),
                 name_route])
 
+        # We get the coordinates as a string, clear 
+        # from \n and \r, clear from spaces, 
+        # converte the string to list of [x, y], 
+        # where x and y are float
         way_cords = list()
         for item in (Input[2].split('\n')):
             way_cords.append(item.split())
@@ -176,13 +187,17 @@ def TEST_PRINT_STOPS(stops, way, transfer, way_cords):
     print("\nWay in cords:")
     print(way_cords)
 
+
+# Getting a connection to the database
 def connection():
     try:
+        # Getting the path to the db file
         path = os.path.join(
             os.path.dirname(
                 os.path.abspath(__file__)),
             'example_server.db'
         )
+        # Connecting
         sqlite_connection = sqlite3.connect(path)
 
     except Exception as e:
@@ -196,8 +211,9 @@ def main():
         sql_connection = connection()
 
         # stops is a list of class STOP elements
-        # way is list of stops in route order
-        # transfer is list of [name of stop, name of route] 
+        # way is list of class STOP in route order
+        # transfer is list of [class STOP, name of route]
+        # way_cords is a list of [x, y] coords in way 
         way_cords, way, transfer = read_way("Dubki", "Beskudnikovo", sql_connection)
         stops = read_stops(sql_connection)
 

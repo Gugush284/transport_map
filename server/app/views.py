@@ -257,7 +257,7 @@ for stop in stops:
 #get list of station names for autocomplete
 
 for stop in stops:
-    folium.CircleMarker(location=[stop.ordinate, stop.abscissa], radius=9, popup = stop.get_name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(marker_cluster)
+    folium.CircleMarker(location=[stop.ordinate, stop.abscissa], radius=9, popup = stop.get_name(), fill_color="red", color="gray", fill_opacity = 0.9).add_to(marker_cluster)
 
 #fill map with station markers
 
@@ -321,17 +321,34 @@ def index():
             #flag for highlighting boarding stop
 
             for ways in way:
-                folium.CircleMarker(location=[ways.ordinate, ways.abscissa], popup = ways.name, fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
+                folium.CircleMarker(
+                    location=[ways.ordinate, ways.abscissa],
+                    popup = ways.name, fill_color="red", 
+                    color="gray",
+                    fill_opacity = 0.9
+                ).add_to(map1)
             
             #putting route stops on the map
 
             for transfers in transfer:
                 if i == 0:
-                    folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\nlanding on: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)          
+                    folium.CircleMarker(
+                        location=[transfers[0].ordinate,
+                        transfers[0].abscissa],
+                        popup = transfers[0].name + "\nlanding on: " + transfers[1],
+                        fill_color="red", color="gray", fill_opacity = 0.9
+                    ).add_to(map1)          
                     i = i + 1
                     #highlight first stop                
                 else:                     
-                    folium.CircleMarker(location=[transfers[0].ordinate, transfers[0].abscissa], popup = transfers[0].name + "\ntransfer to: " + transfers[1], fill_color="red", color="gray", fill_opacity = 0.9).add_to(map1)
+                    folium.CircleMarker(
+                        location=[transfers[0].ordinate,
+                        transfers[0].abscissa],
+                        popup = transfers[0].name + "\ntransfer to: " + transfers[1],
+                        fill_color="red",
+                        color="gray",
+                        fill_opacity = 0.9
+                    ).add_to(map1)
                     
                     #highlight stops with transfer                      
             i = 1

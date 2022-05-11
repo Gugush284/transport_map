@@ -3,7 +3,7 @@ import math
 
 con = sqlite3.connect('database.db')
 
-def is_number(s):
+def is_number(s):                           #функция определения является ли строка числом
     try:
         float(s)
         return 1
@@ -16,7 +16,7 @@ def sql_insert_Num_stop(values_s):             #функция вставки в
 def sql_insert_stop(values_s):             #функция вставки в таблицу остановки
     cur.execute('INSERT INTO stopsker (Name_stop, Cords, Route_Num) VALUES(?, ?, ?)', values_s)
 
-def update_sqlite_table_stopsker(sid, Rout_Num):
+def update_sqlite_table_stopsker(sid, Rout_Num):                    #функция обновления списка маршрутов остановок
     
     try:
         sql_update_query = """Update stopsker set Route_Num = ? where _id = ?"""
@@ -27,7 +27,7 @@ def update_sqlite_table_stopsker(sid, Rout_Num):
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
-def update_sqlite_table_routesker(rid, cncs):
+def update_sqlite_table_routesker(rid, cncs):                           #функция обновления цепочки координат маршрута 
     
     try:
         sql_update_query = """Update routesker set chain_cords = ? where _id = ?"""
@@ -38,7 +38,7 @@ def update_sqlite_table_routesker(rid, cncs):
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
-def update_sqlite_table_routesker2(rid, cnss):
+def update_sqlite_table_routesker2(rid, cnss):                                      #функция обновления цепочки остановок маршрута 
     
     try:
         sql_update_query = """Update routesker set chain_stops = ? where _id = ?"""
@@ -49,7 +49,7 @@ def update_sqlite_table_routesker2(rid, cnss):
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
-def delete_record(sid):
+def delete_record(sid):                                                     #функция удаления остановки
     try:
         sql_delete_query = """DELETE from stopsker where _id = ?"""
         data=[sid]
@@ -59,7 +59,7 @@ def delete_record(sid):
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
-def delete_record2(rid):
+def delete_record2(rid):                                                #функция удаления маршрута
     try:
         sql_delete_query = """DELETE from routesker where _id = ?"""
         data=[rid]

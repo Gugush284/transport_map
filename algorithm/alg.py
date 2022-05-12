@@ -11,13 +11,15 @@ import read_db
 # stop2 is id of end stop
 # route is id of route
 # cur is sql cursor
-def calculation(route, stop1, stop2, cur):
+def calculation(route, stop1, stop2):
 
     # if stop1 is stop
     if stop1 == stop2:
         return 0
 
     try:
+
+        cur = sqlite_connection.cursor()
 
         # get a chain of stop ids
         cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?", [route])
@@ -59,7 +61,7 @@ def calculation(route, stop1, stop2, cur):
 
     except Exception as e:
         print({e})
-        return -2
+        exit()
     else:
 
         # look for the positions of the coordinates
@@ -111,18 +113,13 @@ def calculation(route, stop1, stop2, cur):
                         road.append(way)
 
         if len(road) == 0:
-            return -3
+            exit()
 
         # we find out the smallest chain of coordinates
         enroute = road[0]
         for way in road:
             if len(way) < len(enroute):
                 enroute = way
-
-        del way
-        del road
-        del position_stop1
-        del position_stop2
 
         # sum up the distances between the points
         length = 0
@@ -148,8 +145,7 @@ def dijkstra_core(
     dist,
     prev_stop,
     last_route,
-    priority_queue,
-    cur,
+    priority_queue
 ):
     sum_im_ed = sum_im_ed_1
     rt = routes[route].get_route()
@@ -159,7 +155,7 @@ def dijkstra_core(
         if index != start_pointer and rt[index] == stop_num:
             flag = 1
             break
-        sum_im_ed += calculation(route, rt[index], rt[index + 1], cur)
+        sum_im_ed += calculation(route, rt[index], rt[index + 1])
         # checking whether the road will be shorter
         # if so, then we change the corresponding parameters
         if dist[rt[index + 1]] > sum_im_ed:
@@ -170,7 +166,7 @@ def dijkstra_core(
 
     # block that mange a jump from the end of an array to its beginning
     if flag == 0:
-        sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0], cur)
+        sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0])
         if dist[rt[0]] > sum_im_ed:
             dist[rt[0]] = sum_im_ed
             prev_stop[rt[0]] = rt[len(rt) - 1]
@@ -180,7 +176,7 @@ def dijkstra_core(
         for index in range(0, start_pointer):
             if index != start_pointer and rt[index] == stop_num:
                 break
-            sum_im_ed += calculation(route, rt[index], rt[index + 1], cur)
+            sum_im_ed += calculation(route, rt[index], rt[index + 1])
             if dist[rt[index + 1]] > sum_im_ed:
                 dist[rt[index + 1]] = sum_im_ed
                 prev_stop[rt[index + 1]] = rt[index]
@@ -188,7 +184,7 @@ def dijkstra_core(
                 heapq.heappush(priority_queue, (dist[rt[index + 1]], rt[index + 1]))
 
 
-def routes_to_all_stops(start_stop, graph, routes, cur):
+def routes_to_all_stops(start_stop, graph, routes):
     # stop has an id id \in [1 ... amount_of_stops]
     # that is why we are making structures in len(graph) + 1
     # priority_queue a struct where we are putting a stop and a length to it
@@ -238,8 +234,7 @@ def routes_to_all_stops(start_stop, graph, routes, cur):
                     dist,
                     prev_stop,
                     last_route,
-                    priority_queue,
-                    cur,
+                    priority_queue
                 )
         # note that all possible paths from the node have been parsed
         visited[stop_num] = 1
@@ -273,18 +268,80 @@ def return_routes(last_route, prev_stop, graph, start_stop):
         if prev_stop[i] is None or i == start_stop:
             ans.append((start_stop, i, [], []))
         else:
-            mass = path_of_routes(start_stop, i, prev_stop)
+            mass = path_of_stops(start_stop, i, prev_stop)
             ans.append((start_stop, i, mass, path_of_routes(mass, last_route)))
     return ans
 
 
 # the main function finding the optimal route between all pairs of stops
-def opt_routes(graph, routes, cur):
-    # we run through all the stops in the graph
-    # and find all the optimal paths from one stop to another
-    for i in range(1, len(graph) + 1):
-        d = routes_to_all_stops(i, graph, routes, cur)
-        print(d, "\n\n")
+def opt_routes(graph, routes):
+    try:
+        cur = sqlite_connection.cursor()
+
+        cur.execute("""CREATE TABLE IF NOT EXISTS "way" (
+	        "_id"	INTEGER NOT NULL,
+	        "id1"	INTEGER,
+	        "id2"	INTEGER,
+	        "route"	TEXT,
+	        "transfer"	TEXT,
+	        "cords"	TEXT,
+	        PRIMARY KEY("_id" AUTOINCREMENT)
+            );"""
+        )
+
+        sqlite_connection.commit()
+
+        # we run through all the stops in the graph
+        # and find all the optimal paths from one stop to another
+        for i in range(1, len(graph) + 1):
+            ways = routes_to_all_stops(i, graph, routes)
+            print(ways, "\n\n") 
+
+            for way in ways:
+
+                if (way[0] != way[1]):
+
+                    list_index = list()
+                    for index in range(len(way[3])):
+                        if index == 0:
+                            during_route = way[3][index]
+                            list_index.append(index)
+                        else:
+                            if way[3][index] != during_route:
+                                during_route = way[3][index]
+                                list_index.append(index)
+
+                    transfers = list()
+                    for elem in list_index:
+                        if elem == 0:
+                            transfers.append([way[2][elem], way[3][elem]])
+                        else:
+                            transfers.append([way[2][elem-1], way[3][elem]])
+
+                    transfers_str = ""
+                    for item in transfers:
+                        transfers_str += " ".join(map(str,item))
+                        transfers_str += ";\n"
+
+                    cur.execute(
+                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
+                        [
+                            way[0],
+                            way[1],
+                            " ".join(map(str,way[2])),
+                            transfers_str[:len(transfers_str)-2]
+                        ]
+                    )
+                    sqlite_connection.commit()
+            
+            print("\n\n")
+
+    except Exception as e:
+        print({e})
+        exit()
+                
+        
+
 
 
 def TEST_calculation(routes):
@@ -302,7 +359,7 @@ def TEST_calculation(routes):
 
             for s1_id in plenty:
                 for s2_id in plenty:
-                    lenth = calculation(key, s1_id, s2_id, cur)
+                    lenth = calculation(key, s1_id, s2_id)
 
                     cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s1_id])
                     name_s1 = cur.fetchone()[0]
@@ -338,7 +395,7 @@ def main():
         exit()
     else:
         TEST_calculation(routes)
-        # opt_routes(graph, routes)
+        opt_routes(graph, routes)
     finally:
         sqlite_connection.close()
 

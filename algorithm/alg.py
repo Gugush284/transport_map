@@ -1,4 +1,5 @@
 import heapq
+from itertools import chain
 import math
 import os
 import sqlite3
@@ -6,6 +7,57 @@ from audioop import reverse
 
 import read_db
 
+def find_road(chain_coords, stop1_coords, stop2_coords, ring):
+    # look for the positions of the coordinates
+    # of stops in the chain of coordinates of the route
+    position_stop1 = list()
+    position_stop2 = list()
+
+    for index in range(len(chain_coords)):
+        if chain_coords[index] == stop1_coords:
+            position_stop1.append(index)
+        elif chain_coords[index] == stop2_coords:
+            position_stop2.append(index)
+
+    if (len(position_stop1) == 0) or (len(position_stop2) == 0):
+        return -3
+
+    road = list()
+
+    # if the route is not circular, we find from right to
+    # left all the coordinate chains connecting the stops
+    if ring != 1:
+        for position1 in position_stop1:
+            for position2 in position_stop2:
+                if position1 < position2:
+                    way = list()
+                    for index in range(position1, position2 + 1, 1):
+                        way.append(chain_coords[index])
+                    road.append(way)
+    else:
+        # if the route is circular, we find
+        # a chain of coordinates connecting the stops
+        for position1 in position_stop1:
+            for position2 in position_stop2:
+                way = list()
+                if position1 < position2:
+                    # if there is a start in the chain
+                    # first, and then the end
+                    for index in range(position1, position2 + 1, 1):
+                        way.append(chain_coords[index])
+                    road.append(way)
+                else:
+                    # if there is an end in the chain first, and then a
+                    # start, go from the start to the end of the chain
+                    # array, and from the beginning of the array to the end
+                    for index in range(position1, len(chain_coords), 1):
+                        way.append(chain_coords[index])
+                    for index in range(0, position2 + 1, 1):
+                        way.append(chain_coords[index])
+                    road.append(way)
+
+    return road
+    
 
 # stop1 is id of start stop
 # stop2 is id of end stop
@@ -15,7 +67,7 @@ def calculation(route, stop1, stop2):
 
     # if stop1 is stop
     if stop1 == stop2:
-        return 0
+        return 0, []
 
     try:
 
@@ -64,74 +116,31 @@ def calculation(route, stop1, stop2):
         exit()
     else:
 
-        # look for the positions of the coordinates
-        # of stops in the chain of coordinates of the route
-        position_stop1 = list()
-        position_stop2 = list()
-
-        for index in range(len(chain_coords)):
-            if chain_coords[index] == stop1_coords:
-                position_stop1.append(index)
-            elif chain_coords[index] == stop2_coords:
-                position_stop2.append(index)
-
-        if (len(position_stop1) == 0) or (len(position_stop2) == 0):
-            return -3
-
-        road = list()
-
-        # if the route is not circular, we find from right to
-        # left all the coordinate chains connecting the stops
-        if ring != 1:
-            for position1 in position_stop1:
-                for position2 in position_stop2:
-                    if position1 < position2:
-                        way = list()
-                        for index in range(position1, position2 + 1, 1):
-                            way.append(chain_coords[index])
-                        road.append(way)
-        else:
-            # if the route is circular, we find
-            # a chain of coordinates connecting the stops
-            for position1 in position_stop1:
-                for position2 in position_stop2:
-                    way = list()
-                    if position1 < position2:
-                        # if there is a start in the chain
-                        # first, and then the end
-                        for index in range(position1, position2 + 1, 1):
-                            way.append(chain_coords[index])
-                        road.append(way)
-                    else:
-                        # if there is an end in the chain first, and then a
-                        # start, go from the start to the end of the chain
-                        # array, and from the beginning of the array to the end
-                        for index in range(position1, len(chain_coords), 1):
-                            way.append(chain_coords[index])
-                        for index in range(0, position2 + 1, 1):
-                            way.append(chain_coords[index])
-                        road.append(way)
+        road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
         if len(road) == 0:
             exit()
 
         # we find out the smallest chain of coordinates
-        enroute = road[0]
+        enroute = []
+        length = math.inf
         for way in road:
-            if len(way) < len(enroute):
+
+            # sum up the distances between the points
+            length_way = 0
+            for index in range(len(way) - 1):
+                # formula for calculating the distance between
+                # two points and on a plane: sqrt((x2-x1)^2 + (y2-y1)^2)
+                length_way += (
+                    ((way[index + 1][0] - way[index][0]) ** 2)
+                    + ((way[index + 1][1] - way[index][1]) ** 2)
+                ) ** 0.5
+
+            if length_way < length:
+                length = length_way
                 enroute = way
 
-        # sum up the distances between the points
-        length = 0
-        for index in range(len(enroute) - 1):
-            # formula for calculating the distance between
-            # two points and on a plane: sqrt((x2-x1)^2 + (y2-y1)^2)
-            length += (
-                ((enroute[index + 1][0] - enroute[index][0]) ** 2)
-                + ((enroute[index + 1][1] - enroute[index][1]) ** 2)
-            ) ** 0.5
-
-        return length
+        return length, enroute
 
 
 # a part that works this the stops in the route
@@ -323,6 +332,27 @@ def opt_routes(graph, routes):
                         transfers_str += " ".join(map(str,item))
                         transfers_str += ";\n"
 
+                    transfers.append(
+                        [way[1],
+                        transfers[len(transfers)-1][1]]
+                    )
+
+                    for index in range(len(transfers)-2):
+                        cur.execute(
+                            "SELECT chain_cords FROM routesker WHERE _id = ?", 
+                            [transfers[index][1]]
+                        )
+                        chain_str = cur.fetchone()[0].split()
+
+                        chain = list()
+                        for item in range(0, len(chain_str), 2):
+                            chain.append([
+                                float(chain_str[item]), 
+                                float(chain_str[item+1])
+                            ])
+
+                        print(chain)
+
                     cur.execute(
                         """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
                         [
@@ -339,9 +369,6 @@ def opt_routes(graph, routes):
     except Exception as e:
         print({e})
         exit()
-                
-        
-
 
 
 def TEST_calculation(routes):
@@ -359,7 +386,7 @@ def TEST_calculation(routes):
 
             for s1_id in plenty:
                 for s2_id in plenty:
-                    lenth = calculation(key, s1_id, s2_id)
+                    lenth, road = calculation(key, s1_id, s2_id)
 
                     cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s1_id])
                     name_s1 = cur.fetchone()[0]
@@ -367,8 +394,9 @@ def TEST_calculation(routes):
                     cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s2_id])
 
                     print(
-                        "Between {} and {} - {}".format(
-                            name_s1, cur.fetchone()[0], lenth
+                        "Between {} and {} - {} by {}".format(
+                            name_s1, cur.fetchone()[0], lenth,
+                            road
                         )
                     )
 

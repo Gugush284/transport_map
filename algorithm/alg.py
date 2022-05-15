@@ -7,6 +7,35 @@ from audioop import reverse
 
 import read_db
 
+class cal_road:
+    # Класс, возвращаемый из функции
+    # calculation, содержит три объекта:
+        # coords_road - list координат от остановки
+        # 1 до остановки 2
+        # length - float переменная, содержащая длину 
+        # между 1 и 2 остановками
+        # stops - list, содержащий id двух остановок
+        # route - id маршрута, по которому считаем
+        # расстояние между остановками
+    def __init__(self, stop1, stop2, route, road, length):
+        self.coords_road = road
+        self.length = length
+        self.stops = [stop1, stop2]
+        self.route = route
+
+    def get_coords(self):
+        return self.coords_road
+
+    def get_length(self):
+        return self.length
+
+    def get_stops(self):
+        return self.stops
+
+    def get_route(self):
+        return self.route
+
+
 def find_road(chain_coords, stop1_coords, stop2_coords, ring):
     # look for the positions of the coordinates
     # of stops in the chain of coordinates of the route
@@ -63,11 +92,12 @@ def find_road(chain_coords, stop1_coords, stop2_coords, ring):
 # stop2 is id of end stop
 # route is id of route
 # cur is sql cursor
+# function return class cal_road
 def calculation(route, stop1, stop2):
 
     # if stop1 is stop
     if stop1 == stop2:
-        return 0, []
+        return cal_road(stop1, stop2, route, [], 0)
 
     try:
 
@@ -140,7 +170,7 @@ def calculation(route, stop1, stop2):
                 length = length_way
                 enroute = way
 
-        return length, enroute
+        return cal_road(stop1, stop2, route, enroute, length)
 
 
 # a part that works this the stops in the route
@@ -386,7 +416,7 @@ def TEST_calculation(routes):
 
             for s1_id in plenty:
                 for s2_id in plenty:
-                    lenth, road = calculation(key, s1_id, s2_id)
+                    road_info = calculation(key, s1_id, s2_id)
 
                     cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s1_id])
                     name_s1 = cur.fetchone()[0]
@@ -395,8 +425,9 @@ def TEST_calculation(routes):
 
                     print(
                         "Between {} and {} - {} by {}".format(
-                            name_s1, cur.fetchone()[0], lenth,
-                            road
+                            name_s1, cur.fetchone()[0], 
+                            road_info.get_length(),
+                            road_info.get_coords()
                         )
                     )
 

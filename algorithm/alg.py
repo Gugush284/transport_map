@@ -1,22 +1,23 @@
 import heapq
-from itertools import chain
 import math
 import os
 import sqlite3
 from audioop import reverse
+from itertools import chain
 
 import read_db
+
 
 class cal_road:
     # Класс, возвращаемый из функции
     # calculation, содержит три объекта:
-        # coords_road - list координат от остановки
-        # 1 до остановки 2
-        # length - float переменная, содержащая длину 
-        # между 1 и 2 остановками
-        # stops - list, содержащий id двух остановок
-        # route - id маршрута, по которому считаем
-        # расстояние между остановками
+    # coords_road - list координат от остановки
+    # 1 до остановки 2
+    # length - float переменная, содержащая длину
+    # между 1 и 2 остановками
+    # stops - list, содержащий id двух остановок
+    # route - id маршрута, по которому считаем
+    # расстояние между остановками
     def __init__(self, stop1, stop2, route, road, length):
         self.coords_road = road
         self.length = length
@@ -86,7 +87,7 @@ def find_road(chain_coords, stop1_coords, stop2_coords, ring):
                     road.append(way)
 
     return road
-    
+
 
 # stop1 is id of start stop
 # stop2 is id of end stop
@@ -184,7 +185,7 @@ def dijkstra_core(
     dist,
     prev_stop,
     last_route,
-    priority_queue
+    priority_queue,
 ):
     sum_im_ed = sum_im_ed_1
     rt = routes[route].get_route()
@@ -194,7 +195,7 @@ def dijkstra_core(
         if index != start_pointer and rt[index] == stop_num:
             flag = 1
             break
-        sum_im_ed += calculation(route, rt[index], rt[index + 1])
+        sum_im_ed += calculation(route, rt[index], rt[index + 1]).get_length()
         # checking whether the road will be shorter
         # if so, then we change the corresponding parameters
         if dist[rt[index + 1]] > sum_im_ed:
@@ -205,7 +206,7 @@ def dijkstra_core(
 
     # block that mange a jump from the end of an array to its beginning
     if flag == 0:
-        sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0])
+        sum_im_ed += calculation(route, rt[len(rt) - 1], rt[0]).get_length()
         if dist[rt[0]] > sum_im_ed:
             dist[rt[0]] = sum_im_ed
             prev_stop[rt[0]] = rt[len(rt) - 1]
@@ -215,7 +216,7 @@ def dijkstra_core(
         for index in range(0, start_pointer):
             if index != start_pointer and rt[index] == stop_num:
                 break
-            sum_im_ed += calculation(route, rt[index], rt[index + 1])
+            sum_im_ed += calculation(route, rt[index], rt[index + 1]).get_length()
             if dist[rt[index + 1]] > sum_im_ed:
                 dist[rt[index + 1]] = sum_im_ed
                 prev_stop[rt[index + 1]] = rt[index]
@@ -273,7 +274,7 @@ def routes_to_all_stops(start_stop, graph, routes):
                     dist,
                     prev_stop,
                     last_route,
-                    priority_queue
+                    priority_queue,
                 )
         # note that all possible paths from the node have been parsed
         visited[stop_num] = 1
@@ -301,6 +302,15 @@ def path_of_routes(mass, route):
     return path
 
 
+def coord_way(stops, route):
+    res = list()
+    if len(stops) == 0:
+        return res
+    for i in range(1, len(stops)):
+        res.append(calculation(stops[i - 1], stops[i], route[i]).get_coords())
+    return res
+
+
 def return_routes(last_route, prev_stop, graph, start_stop):
     ans = list()
     for i in range(1, len(graph) + 1):
@@ -308,7 +318,10 @@ def return_routes(last_route, prev_stop, graph, start_stop):
             ans.append((start_stop, i, [], []))
         else:
             mass = path_of_stops(start_stop, i, prev_stop)
-            ans.append((start_stop, i, mass, path_of_routes(mass, last_route)))
+            route = path_of_routes(mass, last_route)
+            coords = coord_way(mass, route)
+            ans.append((start_stop, i, mass, route, coords))
+
     return ans
 
 
@@ -317,7 +330,8 @@ def opt_routes(graph, routes):
     try:
         cur = sqlite_connection.cursor()
 
-        cur.execute("""CREATE TABLE IF NOT EXISTS "way" (
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS "way" (
 	        "_id"	INTEGER NOT NULL,
 	        "id1"	INTEGER,
 	        "id2"	INTEGER,
@@ -334,11 +348,11 @@ def opt_routes(graph, routes):
         # and find all the optimal paths from one stop to another
         for i in range(1, len(graph) + 1):
             ways = routes_to_all_stops(i, graph, routes)
-            print(ways, "\n\n") 
+            print(ways, "\n\n")
 
             for way in ways:
 
-                if (way[0] != way[1]):
+                if way[0] != way[1]:
 
                     list_index = list()
                     for index in range(len(way[3])):
@@ -355,31 +369,27 @@ def opt_routes(graph, routes):
                         if elem == 0:
                             transfers.append([way[2][elem], way[3][elem]])
                         else:
-                            transfers.append([way[2][elem-1], way[3][elem]])
+                            transfers.append([way[2][elem - 1], way[3][elem]])
 
                     transfers_str = ""
                     for item in transfers:
-                        transfers_str += " ".join(map(str,item))
+                        transfers_str += " ".join(map(str, item))
                         transfers_str += ";\n"
 
-                    transfers.append(
-                        [way[1],
-                        transfers[len(transfers)-1][1]]
-                    )
+                    transfers.append([way[1], transfers[len(transfers) - 1][1]])
 
-                    for index in range(len(transfers)-2):
+                    for index in range(len(transfers) - 2):
                         cur.execute(
-                            "SELECT chain_cords FROM routesker WHERE _id = ?", 
-                            [transfers[index][1]]
+                            "SELECT chain_cords FROM routesker WHERE _id = ?",
+                            [transfers[index][1]],
                         )
                         chain_str = cur.fetchone()[0].split()
 
                         chain = list()
                         for item in range(0, len(chain_str), 2):
-                            chain.append([
-                                float(chain_str[item]), 
-                                float(chain_str[item+1])
-                            ])
+                            chain.append(
+                                [float(chain_str[item]), float(chain_str[item + 1])]
+                            )
 
                         print(chain)
 
@@ -388,12 +398,12 @@ def opt_routes(graph, routes):
                         [
                             way[0],
                             way[1],
-                            " ".join(map(str,way[2])),
-                            transfers_str[:len(transfers_str)-2]
-                        ]
+                            " ".join(map(str, way[2])),
+                            transfers_str[: len(transfers_str) - 2],
+                        ],
                     )
                     sqlite_connection.commit()
-            
+
             print("\n\n")
 
     except Exception as e:
@@ -425,9 +435,10 @@ def TEST_calculation(routes):
 
                     print(
                         "Between {} and {} - {} by {}".format(
-                            name_s1, cur.fetchone()[0], 
+                            name_s1,
+                            cur.fetchone()[0],
                             road_info.get_length(),
-                            road_info.get_coords()
+                            road_info.get_coords(),
                         )
                     )
 
@@ -448,7 +459,6 @@ def main():
         # routes[key] has a type of list
         routes = read_db.read_routes(sqlite_connection)
         graph = read_db.read_graph(sqlite_connection)
-
     except Exception as e:
         print({e})
         exit()

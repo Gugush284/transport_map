@@ -3,7 +3,6 @@ import math
 import os
 import sqlite3
 from audioop import reverse
-from itertools import chain
 
 import read_db
 
@@ -50,7 +49,7 @@ def find_road(chain_coords, stop1_coords, stop2_coords, ring):
             position_stop2.append(index)
 
     if (len(position_stop1) == 0) or (len(position_stop2) == 0):
-        return -3
+        return []
 
     road = list()
 
@@ -150,6 +149,7 @@ def calculation(route, stop1, stop2):
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
         if len(road) == 0:
+            print("No such stations")
             exit()
 
         # we find out the smallest chain of coordinates

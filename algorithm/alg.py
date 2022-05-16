@@ -149,6 +149,7 @@ def calculation(route, stop1, stop2):
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
         if len(road) == 0:
+            print([route, chain_coords, stop1_coords, stop2_coords, ring])
             print("No such stations")
             exit()
 
@@ -328,21 +329,21 @@ def return_routes(last_route, prev_stop, graph, start_stop):
 # the main function finding the optimal route between all pairs of stops
 def opt_routes(graph, routes):
     try:
-        cur = sqlite_connection.cursor()
+#        cur = sqlite_connection.cursor()
 
-        cur.execute(
-            """CREATE TABLE IF NOT EXISTS "way" (
-	        "_id"	INTEGER NOT NULL,
-	        "id1"	INTEGER,
-	        "id2"	INTEGER,
-	        "route"	TEXT,
-	        "transfer"	TEXT,
-	        "cords"	TEXT,
-	        PRIMARY KEY("_id" AUTOINCREMENT)
-            );"""
-        )
+#        cur.execute(
+#            """CREATE TABLE IF NOT EXISTS "way" (
+#	        "_id"	INTEGER NOT NULL,
+#	        "id1"	INTEGER,
+#	        "id2"	INTEGER,
+#	        "route"	TEXT,
+#	        "transfer"	TEXT,
+#	        "cords"	TEXT,
+#	        PRIMARY KEY("_id" AUTOINCREMENT)
+#            );"""
+#        )
 
-        sqlite_connection.commit()
+#        sqlite_connection.commit()
 
         # we run through all the stops in the graph
         # and find all the optimal paths from one stop to another
@@ -350,7 +351,7 @@ def opt_routes(graph, routes):
             ways = routes_to_all_stops(i, graph, routes)
             print(ways, "\n\n")
 
-            for way in ways:
+            """for way in ways:
 
                 if way[0] != way[1]:
 
@@ -392,19 +393,19 @@ def opt_routes(graph, routes):
                             )
 
                         print(chain)
+"""
+#                    cur.execute(
+#                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
+#                        [
+#                            way[0],
+#                            way[1],
+#                            " ".join(map(str, way[2])),
+#                            transfers_str[: len(transfers_str) - 2],
+#                        ],
+#                    )
+#                    sqlite_connection.commit()
 
-                    cur.execute(
-                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
-                        [
-                            way[0],
-                            way[1],
-                            " ".join(map(str, way[2])),
-                            transfers_str[: len(transfers_str) - 2],
-                        ],
-                    )
-                    sqlite_connection.commit()
-
-            print("\n\n")
+#           """print("\n\n")"""
 
     except Exception as e:
         print({e})

@@ -36,6 +36,30 @@ class cal_road:
         return self.route
 
 
+class path:
+    def __init__(self, stop1, stop2, path_of_stops, path_of_routes, path_of_coords):
+        self.stop1 = stop1
+        self.stop2 = stop2
+        self.path_of_stops = path_of_stops
+        self.path_of_routes = path_of_routes
+        self.path_of_coords = path_of_coords
+
+    def get_stop1(self):
+        return self.stop1
+
+    def get_stop2(self):
+        return self.stop2
+
+    def get_path_of_routes(self):
+        return self.path_of_routes
+
+    def get_path_of_stops(self):
+        return self.path_of_stops
+
+    def get_path_of_coords(self):
+        return self.path_of_coords
+
+
 def find_road(chain_coords, stop1_coords, stop2_coords, ring):
     # look for the positions of the coordinates
     # of stops in the chain of coordinates of the route
@@ -145,13 +169,19 @@ def calculation(route, stop1, stop2):
         print({e})
         exit()
     else:
+        """print(chain_coords)
+        print(stop1_coords)
+        print(stop2_coords)
+        print(ring)"""
 
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
-        if len(road) == 0:
+        # print(road)
+
+        """ if len(road) == 0:
             print([route, chain_coords, stop1_coords, stop2_coords, ring])
             print("No such stations")
-            exit()
+            exit()"""
 
         # we find out the smallest chain of coordinates
         enroute = []
@@ -172,7 +202,12 @@ def calculation(route, stop1, stop2):
                 length = length_way
                 enroute = way
 
-        return cal_road(stop1, stop2, route, enroute, length)
+        # print(enroute, end="\n\n")
+
+        info = cal_road(stop1, stop2, route, enroute, length)
+        # print(info.get_coords())
+
+        return info
 
 
 # a part that works this the stops in the route
@@ -308,7 +343,10 @@ def coord_way(stops, route):
     if len(stops) == 0:
         return res
     for i in range(1, len(stops)):
-        res.append(calculation(stops[i - 1], stops[i], route[i]).get_coords())
+        res.append(calculation(route[i], stops[i - 1], stops[i]).get_coords())
+    if len(res) != 1:
+        for i in range(len(res) - 1):
+            res[i].pop(len(res[i]) - 1)
     return res
 
 
@@ -316,12 +354,12 @@ def return_routes(last_route, prev_stop, graph, start_stop):
     ans = list()
     for i in range(1, len(graph) + 1):
         if prev_stop[i] is None or i == start_stop:
-            ans.append((start_stop, i, [], []))
+            ans.append(path(start_stop, i, [], [], []))
         else:
             mass = path_of_stops(start_stop, i, prev_stop)
             route = path_of_routes(mass, last_route)
             coords = coord_way(mass, route)
-            ans.append((start_stop, i, mass, route, coords))
+            ans.append(path(start_stop, i, mass, route, coords))
 
     return ans
 
@@ -329,27 +367,35 @@ def return_routes(last_route, prev_stop, graph, start_stop):
 # the main function finding the optimal route between all pairs of stops
 def opt_routes(graph, routes):
     try:
-#        cur = sqlite_connection.cursor()
+        #        cur = sqlite_connection.cursor()
 
-#        cur.execute(
-#            """CREATE TABLE IF NOT EXISTS "way" (
-#	        "_id"	INTEGER NOT NULL,
-#	        "id1"	INTEGER,
-#	        "id2"	INTEGER,
-#	        "route"	TEXT,
-#	        "transfer"	TEXT,
-#	        "cords"	TEXT,
-#	        PRIMARY KEY("_id" AUTOINCREMENT)
-#            );"""
-#        )
+        #        cur.execute(
+        #            """CREATE TABLE IF NOT EXISTS "way" (
+        # 	        "_id"	INTEGER NOT NULL,
+        # 	        "id1"	INTEGER,
+        # 	        "id2"	INTEGER,
+        # 	        "route"	TEXT,
+        # 	        "transfer"	TEXT,
+        # 	        "cords"	TEXT,
+        # 	        PRIMARY KEY("_id" AUTOINCREMENT)
+        #            );"""
+        #        )
 
-#        sqlite_connection.commit()
+        #        sqlite_connection.commit()
 
         # we run through all the stops in the graph
         # and find all the optimal paths from one stop to another
         for i in range(1, len(graph) + 1):
             ways = routes_to_all_stops(i, graph, routes)
-            print(ways, "\n\n")
+            # print(ways, "\n\n")
+            for j in range(len(ways)):
+                print(
+                    ways[j].get_stop1(),
+                    ways[j].get_stop2(),
+                    ways[j].get_path_of_stops(),
+                    ways[j].get_path_of_routes(),
+                    ways[j].get_path_of_coords(),
+                )
 
             """for way in ways:
 
@@ -394,18 +440,18 @@ def opt_routes(graph, routes):
 
                         print(chain)
 """
-#                    cur.execute(
-#                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
-#                        [
-#                            way[0],
-#                            way[1],
-#                            " ".join(map(str, way[2])),
-#                            transfers_str[: len(transfers_str) - 2],
-#                        ],
-#                    )
-#                    sqlite_connection.commit()
+    #                    cur.execute(
+    #                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
+    #                        [
+    #                            way[0],
+    #                            way[1],
+    #                            " ".join(map(str, way[2])),
+    #                            transfers_str[: len(transfers_str) - 2],
+    #                        ],
+    #                    )
+    #                    sqlite_connection.commit()
 
-#           """print("\n\n")"""
+    #           """print("\n\n")"""
 
     except Exception as e:
         print({e})
@@ -464,7 +510,7 @@ def main():
         print({e})
         exit()
     else:
-        TEST_calculation(routes)
+        # TEST_calculation(routes)
         opt_routes(graph, routes)
     finally:
         sqlite_connection.close()

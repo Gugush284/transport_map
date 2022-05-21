@@ -367,91 +367,92 @@ def return_routes(last_route, prev_stop, graph, start_stop):
 # the main function finding the optimal route between all pairs of stops
 def opt_routes(graph, routes):
     try:
-        #        cur = sqlite_connection.cursor()
+        cur = sqlite_connection.cursor()
 
-        #        cur.execute(
-        #            """CREATE TABLE IF NOT EXISTS "way" (
-        # 	        "_id"	INTEGER NOT NULL,
-        # 	        "id1"	INTEGER,
-        # 	        "id2"	INTEGER,
-        # 	        "route"	TEXT,
-        # 	        "transfer"	TEXT,
-        # 	        "cords"	TEXT,
-        # 	        PRIMARY KEY("_id" AUTOINCREMENT)
-        #            );"""
-        #        )
+        cur.execute(
+            """
+            Select count(name) FROM
+            sqlite_sequence WHERE name
+            = 'way' 
+            """
+        )
 
-        #        sqlite_connection.commit()
+        if cur.fetchone()[0] != 0:
+            cur.execute(
+                """DROP TABLE way"""
+            )
+
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS "way" (
+	            "_id"	INTEGER NOT NULL,
+	            "id1"	INTEGER,
+	            "id2"	INTEGER,
+	            "route"	TEXT,
+	            "transfer"	TEXT,
+	            "cords"	TEXT,
+	            PRIMARY KEY("_id" AUTOINCREMENT)
+            );"""
+        )
+
+        sqlite_connection.commit()
 
         # we run through all the stops in the graph
         # and find all the optimal paths from one stop to another
         for i in range(1, len(graph) + 1):
             ways = routes_to_all_stops(i, graph, routes)
-            # print(ways, "\n\n")
-            for j in range(len(ways)):
-                print(
-                    ways[j].get_stop1(),
-                    ways[j].get_stop2(),
-                    ways[j].get_path_of_stops(),
-                    ways[j].get_path_of_routes(),
-                    ways[j].get_path_of_coords(),
-                )
 
-            """for way in ways:
+            for way in ways:
 
-                if way[0] != way[1]:
+                if way.get_stop1() != way.get_stop2():
 
                     list_index = list()
-                    for index in range(len(way[3])):
+                    for index in range(len(way.get_path_of_routes())):
                         if index == 0:
-                            during_route = way[3][index]
+                            during_route = way.get_path_of_routes()[index]
                             list_index.append(index)
                         else:
-                            if way[3][index] != during_route:
-                                during_route = way[3][index]
+                            if way.get_path_of_routes()[index] != during_route:
+                                during_route = way.get_path_of_routes()[index]
                                 list_index.append(index)
 
                     transfers = list()
                     for elem in list_index:
                         if elem == 0:
-                            transfers.append([way[2][elem], way[3][elem]])
+                            transfers.append([
+                                way.get_path_of_stops()[elem],
+                                way.get_path_of_routes()[elem]
+                        ])
                         else:
-                            transfers.append([way[2][elem - 1], way[3][elem]])
+                            transfers.append([
+                                way.get_path_of_stops()[elem-1],
+                                way.get_path_of_routes()[elem]
+                        ])
 
                     transfers_str = ""
                     for item in transfers:
                         transfers_str += " ".join(map(str, item))
                         transfers_str += ";\n"
+                    transfers_str = transfers_str[: len(transfers_str) - 2]
 
-                    transfers.append([way[1], transfers[len(transfers) - 1][1]])
+                    coord_list = ''
+                    for array in way.get_path_of_coords():
+                        for item in array:
+                            coord_list += " ".join(map(str, item))
+                            coord_list += "\n"
+                    coord_list = coord_list[: len(coord_list) - 1]
 
-                    for index in range(len(transfers) - 2):
-                        cur.execute(
-                            "SELECT chain_cords FROM routesker WHERE _id = ?",
-                            [transfers[index][1]],
-                        )
-                        chain_str = cur.fetchone()[0].split()
+                    cur.execute(
+                        """INSERT INTO way (id1, id2, route, transfer, cords) VALUES (?, ?, ?, ?, ?)""",
+                        [
+                            way.get_stop1(),
+                            way.get_stop2(),
+                            " ".join(map(str, way.get_path_of_stops())),
+                            transfers_str,
+                            coord_list
+                        ],
+                    )
 
-                        chain = list()
-                        for item in range(0, len(chain_str), 2):
-                            chain.append(
-                                [float(chain_str[item]), float(chain_str[item + 1])]
-                            )
-
-                        print(chain)
-"""
-    #                    cur.execute(
-    #                        """INSERT INTO way (id1, id2, route, transfer) VALUES (?, ?, ?, ?)""",
-    #                        [
-    #                            way[0],
-    #                            way[1],
-    #                            " ".join(map(str, way[2])),
-    #                            transfers_str[: len(transfers_str) - 2],
-    #                        ],
-    #                    )
-    #                    sqlite_connection.commit()
-
-    #           """print("\n\n")"""
+                    sqlite_connection.commit()
 
     except Exception as e:
         print({e})

@@ -140,10 +140,10 @@ def collect_data_routes():                            #функция, скач�
             
             try:                                        #проверяем кольцевой маршрут или нет
                 z=cells["geoData"]["coordinates"][1]
-                z=1
+                z=0
             except IndexError:
                 #print("\n Кольцевой \n")
-                z=0
+                z=1
             
             j=1
             m=''

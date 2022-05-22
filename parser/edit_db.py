@@ -1,6 +1,10 @@
 import sqlite3
 import math
-
+import numpy as np
+#программа: проверяет есть ли в routesker маршрут из Route_Num для каждой остановки, если нет, то удаляет его из Route_Num
+#Если да: проверяет, есть ли станция в chain_stops данного маршрута, если нет: удаляет маршрут из Route_Num
+#Если да: 1) заменяет маршрут-номер на id-маршрута в Route_Num, 2) заменяет Name_stop - на id-stop в chain_cords
+#Если маршрутов в Route_Num не осталось, то удаляет остановку
 con = sqlite3.connect('database.db')
 
 def is_number(s):                           #функция определения является ли строка числом
@@ -10,31 +14,13 @@ def is_number(s):                           #функция определени
     except ValueError:
         return 0
 
-def sql_insert_Num_stop(values_s):             #функция вставки в таблицу остановок номера маршрута
-    cur.execute('INSERT INTO stopsker (Name_stop, Cords, Route_Num) VALUES(?, ?, ?)', values_s)
-
-def sql_insert_stop(values_s):             #функция вставки в таблицу остановки
-    cur.execute('INSERT INTO stopsker (Name_stop, Cords, Route_Num) VALUES(?, ?, ?)', values_s)
-
 def update_sqlite_table_stopsker(sid, Rout_Num):                    #функция обновления списка маршрутов остановок
-    
     try:
         sql_update_query = """Update stopsker set Route_Num = ? where _id = ?"""
         data = (Rout_Num, sid)
         cur.execute(sql_update_query, data)
-       # sqlite_connection.commit()
+        con.commit()
         #print("Запись в stopsker успешно обновлена")
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite", error)
-
-def update_sqlite_table_routesker(rid, cncs):                           #функция обновления цепочки координат маршрута 
-    
-    try:
-        sql_update_query = """Update routesker set chain_cords = ? where _id = ?"""
-        data = (cncs, rid)
-        cur.execute(sql_update_query, data)
-       # sqlite_connection.commit()
-        #print("Запись в routesker(chain_cords) успешно обновлена")
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
 
@@ -44,7 +30,7 @@ def update_sqlite_table_routesker2(rid, cnss):                                  
         sql_update_query = """Update routesker set chain_stops = ? where _id = ?"""
         data = (cnss, rid)
         cur.execute(sql_update_query, data)
-       # sqlite_connection.commit()
+        con.commit()
         #print("Запись в routesker(chain_stops) успешно обновлена")
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
@@ -54,7 +40,7 @@ def delete_record(sid):                                                     #ф�
         sql_delete_query = """DELETE from stopsker where _id = ?"""
         data=[sid]
         cur.execute(sql_delete_query,data)
-        #sqlite_connection.commit()
+        con.commit()
         #print("Запись успешно удалена")
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
@@ -64,12 +50,12 @@ def delete_record2(rid):                                                #фун�
         sql_delete_query = """DELETE from routesker where _id = ?"""
         data=[rid]
         cur.execute(sql_delete_query,data)
-        #sqlite_connection.commit()
+        con.commit()
         #print("Запись успешно удалена")
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
-        
-with con:    
+                
+with con:        
     cur = con.cursor()    
     cur.execute("SELECT * FROM stopsker")
     stops = cur.fetchall()
@@ -137,9 +123,7 @@ with con:
                     f2=0
                 
                 if f2==1:
-                    chain_cords_r=chain_cords_r+cords_s+"\n"                #вставляем координаты станции в координаты маршрута
-                    update_sqlite_table_routesker(id_r,chain_cords_r)
-                    
+
                     routes_s=routes_s.replace(Route_Num,str(id_r),1)        #меняем маршрут-номер на id в Route_Num
                     update_sqlite_table_stopsker(id_s, routes_s)
                     
@@ -178,8 +162,6 @@ with con:
         chain_stops_r=''.join([(e+" ") for e in chain_stops_r_mas])
         update_sqlite_table_routesker2(id_r,chain_stops_r)
     
-    
-    
     cur.execute("SELECT * FROM routesker")                      #цикл для удаления "пустых" маршрутов
     routes = cur.fetchall()
     for route in routes:
@@ -189,7 +171,11 @@ with con:
             delets2=delets2+1
             delete_record2(id_r)
 
-    print('\n')
-    print("Количество удалённых остановок: ",delets)
-    print("Количество удалённых маршрутов: ",delets2)
-    con.commit()
+con.commit()
+cur.close()
+con.close()   
+
+print('\n')
+print("Количество удалённых остановок: ",delets)
+print("Количество удалённых маршрутов: ",delets2)
+    

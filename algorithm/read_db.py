@@ -1,39 +1,56 @@
+"""
+Модуль os необходим для поиска абсолютного пути
+до файла с базой данных
+Модуль sqlite3 необходим для работы с базой данных
+"""
 import os
 import sqlite3
 
-class edge:
-    # Конструктор
-    # pointer indicates the sequence numbers
-    # in the chain of stops for the route
-    # route is one of the passing routes
-    # through this stop
+class Edge:
+    """
+    Класс Edge содержит в себе два поля:
+        id маршрта
+        pointer - list индексов, отражающих позицию в маршруте
+    Класс является элементом словаря graph
+    """
     def __init__(self, route, pointer):
         self.route = route
         self.pointer = pointer
 
     def get_pointer(self):
+        """Возвращаем pointer"""
         return self.pointer
 
     def get_route_name(self):
+        """Возвращаем id маршрта"""
         return self.route
 
 
-class route_info:
-    # Конструктор
-    # RING indicates if the route is a ring
-    # route is one of the passing routes
-    # through this stop
-    def __init__(self, route, RING):
+class Rinfo:
+    """
+    Класс Rinfo содержит в себе два поля:
+        route - list, содержащий последовательность остановок в маршруте
+        ring - флаг, указывающий на кольцевой маршрут
+    Класс является элементом словаря routes
+    """
+    def __init__(self, route, ring):
         self.route = route
-        self.ring = RING
+        self.ring = ring
 
     def get_ring(self):
+        """Возвращаем ring"""
         return self.ring
 
     def get_route(self):
+        """Возвращаем route"""
         return self.route
 
 def read_routes(sqlite_connection):
+    """
+    Функция читает маршруты из базы данных и
+    заполняет словарь routes классами Rinfo
+    Ключом словаря является id маршрута
+    """
     routes = dict()
 
     try:
@@ -46,11 +63,11 @@ def read_routes(sqlite_connection):
 
         for num in amount:
             # num[0] is id of route
-            id = num[0]
+            id_route = num[0]
 
             # read chain of stops id for current stop
             cur.execute("SELECT chain_stops FROM routesker WHERE _id = ?",
-                [id])
+                [id_route])
             chain = cur.fetchone()[0].split()
 
             # change type of elem of chain
@@ -60,12 +77,12 @@ def read_routes(sqlite_connection):
 
             # finding out if the route is circular
             cur.execute("SELECT Ring FROM routesker WHERE _id = ?",
-                [id])
+                [id_route])
 
-            routes[int(id)] = route_info(chain_int, cur.fetchone()[0])
+            routes[int(id_route)] = Rinfo(chain_int, cur.fetchone()[0])
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         sqlite_connection.close()
         exit()
     else:
@@ -73,6 +90,11 @@ def read_routes(sqlite_connection):
 
 
 def read_graph(sqlite_connection):
+    """
+    Функция читает остановки из базы данных и
+    заполняет словарь graph классами Edge
+    Ключом словаря является id остановки
+    """
     graph = dict()
 
     try:
@@ -85,13 +107,13 @@ def read_graph(sqlite_connection):
 
         for num in amount:
             # id of current stop
-            id = num[0]
+            id_stop = num[0]
 
-            graph[id] = list()
+            graph[id_stop] = list()
 
 
             cur.execute("SELECT Route_Num FROM stopsker WHERE _id = ?",
-                [id])
+                [id_stop])
 
             # array_routes is routes passing through the current stop
             array_routes = cur.fetchone()[0].split()
@@ -107,19 +129,24 @@ def read_graph(sqlite_connection):
                 pointer = list()
                 counter = 0
                 for stop in chain:
-                    if int(stop) == id:
+                    if int(stop) == id_stop:
                         pointer.append(counter)
                     counter += 1
-                graph[id].append(edge(int(route), pointer))
+                graph[id_stop].append(Edge(int(route), pointer))
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         sqlite_connection.close()
         exit()
     else:
         return graph
 
-def TEST_PRINT(graph, routes, sqlite_connection, seq_stops):
+def test_print(graph, routes, sqlite_connection, seq_stops):
+    """
+    Функция для тестирования кода. Запускается тогда, когда
+    __name__ == __main__. Печатает Остановки, их позиции во
+    всех маршрутахб маршруты, id всех остановок
+    """
     try:
         cur = sqlite_connection.cursor()
 
@@ -136,13 +163,8 @@ def TEST_PRINT(graph, routes, sqlite_connection, seq_stops):
                     [elem.get_route_name()])
 
                 print(
-                    "{} (id = {}) in {} by {} positions: {}".format(
-                        name,
-                        key,
-                        cur.fetchone()[0],
-                        elem.get_pointer(),
-                        routes[elem.get_route_name()].get_route(),
-                    )
+                    f"{name} (id = {key}) in {cur.fetchone()[0]} by",
+                    f"{elem.get_pointer()} positions: {routes[elem.get_route_name()].get_route()}"
                 )
 
         # Print routes
@@ -160,21 +182,22 @@ def TEST_PRINT(graph, routes, sqlite_connection, seq_stops):
                 route_name = "Route"
 
             print(
-                "{} {}: {}".format(
-                    route_name, cur.fetchone()[0],
-                    routes[key].get_route()
-                )
+                f"{route_name}",
+                f" {cur.fetchone()[0]}: {routes[key].get_route()}"
             )
 
         print("\n", end="")
         print(seq_stops)
         print("\n", end="")
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
 
 def sequence_id(sqlite_connection):
+    """
+    Функция возвращает список из id всех остановок
+    """
     try:
         cur = sqlite_connection.cursor()
 
@@ -184,13 +207,18 @@ def sequence_id(sqlite_connection):
         for elem in cur.fetchall():
             seq.append(int(elem[0]))
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
     else:
         return seq
 
 def main():
+    """
+    Главная функция
+    Получаем путь до базы данных
+    и вызываем остальные функции
+    """
     try:
         # Connecting to data base
         path = os.path.join(
@@ -205,11 +233,11 @@ def main():
         graph = read_graph(sqlite_connection)
         seq_stops = sequence_id(sqlite_connection)
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
     else:
-        TEST_PRINT(graph, routes, sqlite_connection, seq_stops)
+        test_print(graph, routes, sqlite_connection, seq_stops)
     finally:
         sqlite_connection.close()
 

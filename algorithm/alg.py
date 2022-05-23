@@ -1,3 +1,12 @@
+"""
+Модуль os необходим для поиска абсолютного пути
+до файла с базой данных
+Модуль sqlite3 необходим для работы с базой данных
+Модуль math необходим для получения псевдо бесконечности
+Модуль heapq необходим для построяния очереди с приоритетом
+Модуль read_db необходим для чтения базы данных и получения
+словарей graph и routes
+"""
 import heapq
 import math
 import os
@@ -7,15 +16,18 @@ import read_db
 
 
 class CalRoad:
-    # Класс, возвращаемый из функции
-    # calculation, содержит три объекта:
-    # coords_road - list координат от остановки
-    # 1 до остановки 2
-    # length - float переменная, содержащая длину
-    # между 1 и 2 остановками
-    # stops - list, содержащий id двух остановок
-    # route - id маршрута, по которому считаем
-    # расстояние между остановками
+    """
+    Класс, возвращаемый из функции
+    calculation, содержит три объекта:
+    coords_road - list координат от остановки
+    1 до остановки 2
+    length - float переменная, содержащая длину
+    между 1 и 2 остановками
+    stops - list, содержащий id двух остановок
+    route - id маршрута, по которому считаем
+    расстояние между остановками
+    """
+
     def __init__(self, stop1, stop2, route, road, length):
         self.coords_road = road
         self.length = length
@@ -23,46 +35,71 @@ class CalRoad:
         self.route = route
 
     def get_coords(self):
+        """Возвращаем coords_road"""
         return self.coords_road
 
     def get_length(self):
+        """Возвращаем length"""
         return self.length
 
     def get_stops(self):
+        """Возвращаем stops"""
         return self.stops
 
     def get_route(self):
+        """Возвращаем route"""
         return self.route
 
 
 class Path:
-    def __init__(self, stop1, stop2, path_of_stops,
-                 path_of_routes, path_of_coords):
+    """
+    Класс, возвращаемый из функции
+    return_routes, содержит 5 объектов:
+    stop1 - id 1 остановки
+    stop2 - id 2 остановки
+    path_of_stops - оптимальный путь, состоящий
+    из остановок, между stop1 и stop2
+    path_of_routes - пересадки при движении по
+    оптимальному пути
+    path_of_coords - оптимальный путь, состоящий
+    из координат, между stop1 и stop2
+    """
+    def __init__(self, stop1, stop2, path_stops,
+                path_routes, path_of_coords):
         self.stop1 = stop1
         self.stop2 = stop2
-        self.path_of_stops = path_of_stops
-        self.path_of_routes = path_of_routes
+        self.path_of_stops = path_stops
+        self.path_of_routes = path_routes
         self.path_of_coords = path_of_coords
 
     def get_stop1(self):
+        """Возвращаем stop1"""
         return self.stop1
 
     def get_stop2(self):
+        """Возвращаем stop2"""
         return self.stop2
 
     def get_path_of_routes(self):
+        """Возвращаем path_of_routes"""
         return self.path_of_routes
 
     def get_path_of_stops(self):
+        """Возвращаем path_of_stops"""
         return self.path_of_stops
 
     def get_path_of_coords(self):
+        """Возвращаем path_of_coords"""
         return self.path_of_coords
 
 
 def find_road(chain_coords, stop1_coords, stop2_coords, ring):
-    # look for the positions of the coordinates
-    # of stops in the chain of coordinates of the route
+    """
+    Look for the positions of the coordinates
+    of stops in the chain of coordinates of the route
+    Then return roads between two stops in this
+    route
+    """
     position_stop1 = list()
     position_stop2 = list()
 
@@ -112,12 +149,19 @@ def find_road(chain_coords, stop1_coords, stop2_coords, ring):
     return road
 
 
-# stop1 is id of start stop
-# stop2 is id of end stop
-# route is id of route
-# cur is sql cursor
-# function return class CalRoad
+
 def calculation(route, stop1, stop2):
+    """
+    calculation is a function for
+    calculation distants between two
+    stops in one route
+
+    # stop1 is id of start stop
+    # stop2 is id of end stop
+    # route is id of route
+
+    function return class CalRoad
+    """
 
     # if stop1 is stop
     if stop1 == stop2:
@@ -166,30 +210,12 @@ def calculation(route, stop1, stop2):
         stop2_coords = (float(stop2_coords_str[0]), float(stop2_coords_str[1]))
         del stop2_coords_str
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
     else:
-        """print(chain_coords)
-        print(stop1_coords)
-        print(stop2_coords)
-        print(ring)"""
 
-        print(route)
-        print(stop1)
-        print(stop2)
-        print(chain_coords)
-        print(stop1_coords)
-        print(stop2_coords)
-        print(ring)
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
-
-        # print(road)
-
-        """ if len(road) == 0:
-            print([route, chain_coords, stop1_coords, stop2_coords, ring])
-            print("No such stations")
-            exit()"""
 
         # we find out the smallest chain of coordinates
         enroute = []
@@ -212,11 +238,6 @@ def calculation(route, stop1, stop2):
 
         info = CalRoad(stop1, stop2, route, enroute, length)
 
-        print(road)
-        print(info.get_length())
-        print(info.get_route())
-        print(info.get_stops(), end = "\n\n")
-
         return info
 
 
@@ -233,7 +254,23 @@ def dijkstra_core(
     last_route,
     priority_queue,
 ):
+    """
+    dijkstra_core  - бежит по всем указанному ей маршруту
+    оценивая стоит ли продолжать движение по нему, смотря
+    по dist от номера остановки будет ли новый путь лучше
+    чем старый
+    route - id маршрута
+    stop_num - номер остановки, от которой стартуем в маршруте
+    start_pointer - индекс stop_num в
+        routes[route].get_route() - поле route in Rinfo
+
+    prev_stop -- a list with the last stop from with we came to stop
+    last_route -- a list with the last route from which we came to stop
+    dist -- distance of the way to the stop
+    priority_queue is a struct where we are putting a stop and a length to it
+    """
     sum_im_ed = sum_im_ed_1
+    # Отсылка на факультет создателей проги (подарок от Полины)
     rt = routes[route].get_route()
     flag = 0
     end_pointer = len(rt) - 1
@@ -277,6 +314,10 @@ def dijkstra_core(
 
 
 def routes_to_all_stops(start_stop, graph, routes, seq_stops):
+    """
+    Дейкстра реализованная на структуре граф
+    Смотри в инструкции разработчика
+    """
     # stop has an id id \in [1 ... amount_of_stops]
     # that is why we are making structures in len(graph) + 1
     # priority_queue a struct where we are putting a stop and a length to it
@@ -291,7 +332,8 @@ def routes_to_all_stops(start_stop, graph, routes, seq_stops):
     prev_stop = dict()
     for stop_id in seq_stops:
         prev_stop[stop_id] = None
-    # the long of the way to the stop
+
+    # distance of the way to the stop
     dist = dict()
     for stop_id in seq_stops:
         dist[stop_id] = math.inf
@@ -339,10 +381,14 @@ def routes_to_all_stops(start_stop, graph, routes, seq_stops):
     # return the stracture consists of start stop, final stop
     # list of stops connecting them
     # lutes connecting them
-    return return_routes(last_route, prev_stop, graph, start_stop, seq_stops)
+    return return_routes(last_route, prev_stop, start_stop, seq_stops)
 
 
 def path_of_stops(start_stop, last_stop, mass):
+    """
+    Возращает оптимальный путь между остановками
+    в виде list остановок
+    """
     path = list()
     path.append(last_stop)
     while last_stop != start_stop:
@@ -353,6 +399,9 @@ def path_of_stops(start_stop, last_stop, mass):
 
 
 def path_of_routes(mass, route):
+    """
+    Возращает пересадки в пути между остановками
+    """
     path = list()
     for i in range(len(mass)):
         path.append(route[mass[i]])
@@ -361,6 +410,11 @@ def path_of_routes(mass, route):
 
 
 def coord_way(stops, route):
+    """
+    Возращает оптимальный путь между остановками
+    в виде list координат остановок и промежуточных
+    координат
+    """
     res = list()
     if len(stops) == 0:
         return res
@@ -372,7 +426,10 @@ def coord_way(stops, route):
     return res
 
 
-def return_routes(last_route, prev_stop, graph, start_stop, seq_stops):
+def return_routes(last_route, prev_stop, start_stop, seq_stops):
+    """
+    Возращает структуру Path с оптимальными параметрами
+    """
     ans = list()
     for i in seq_stops:
         if prev_stop[i] is None or i == start_stop:
@@ -386,8 +443,12 @@ def return_routes(last_route, prev_stop, graph, start_stop, seq_stops):
     return ans
 
 
-# the main function finding the optimal route between all pairs of stops
+
 def opt_routes(graph, routes, seq_stops):
+    """
+    the main function finding the optimal
+    route between all pairs of stops
+    """
     try:
         cur = sqlite_connection.cursor()
 
@@ -480,12 +541,18 @@ def opt_routes(graph, routes, seq_stops):
 
                     sqlite_connection.commit()
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
 
 
-def TEST_calculation(routes):
+def test_calculation(routes):
+    """
+    Функция для проверки работоспособности calculation
+    Принимает на вход словарь routes
+    Печатает расстояния между всеми остановками во
+    всех маршрутах
+    """
     try:
         cur = sqlite_connection.cursor()
 
@@ -497,7 +564,7 @@ def TEST_calculation(routes):
                         [key])
             name_route = cur.fetchone()[0]
 
-            print("Route {}: {}".format(name_route, routes[key].get_route()))
+            print(f"Route {name_route}: {routes[key].get_route()}")
 
             for s1_id in plenty:
                 for s2_id in plenty:
@@ -511,42 +578,43 @@ def TEST_calculation(routes):
                                 [s2_id])
 
                     print(
-                        "Between {} and {} - {} by {}".format(
-                            name_s1,
-                            cur.fetchone()[0],
-                            road_info.get_length(),
-                            road_info.get_coords(),
-                        )
+                        f"Between {name_s1} and {cur.fetchone()[0]}",
+                        f" - {road_info.get_length()} by {road_info.get_coords()}"
                     )
 
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
 
 
 def main():
+    """
+    Вызывается при __name__ == "__main__"
+
+    Получает
+    graph is a dict, where key is id of the station
+    graph[key] has a type of class edge list
+    routes is a dict, where key is id of the route
+    routes[key] has a type of list
+    seq_stops - набор id в маршруте
+    """
     try:
-        # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                            "example.db")
-        global sqlite_connection
-        sqlite_connection = sqlite3.connect(path)
-        # graph is a dict, where key is id of the station
-        # graph[key] has a type of class edge list
-        # routes is a dict, where key is id of the route
-        # routes[key] has a type of list
         routes = read_db.read_routes(sqlite_connection)
         graph = read_db.read_graph(sqlite_connection)
         seq_stops = read_db.sequence_id(sqlite_connection)
-    except Exception as e:
-        print({e})
+    except Exception as exp:
+        print({exp})
         exit()
     else:
-        # TEST_calculation(routes)
+        #test_calculation(routes)
         opt_routes(graph, routes, seq_stops)
     finally:
         sqlite_connection.close()
 
 
 if __name__ == "__main__":
+    # Connecting to data base
+    paths = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+        "example.db")
+    sqlite_connection = sqlite3.connect(paths)
     main()

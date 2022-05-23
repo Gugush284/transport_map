@@ -119,7 +119,7 @@ def read_graph(sqlite_connection):
     else:
         return graph
 
-def TEST_PRINT(graph, routes, sqlite_connection):
+def TEST_PRINT(graph, routes, sqlite_connection, seq_stops):
     try:
         cur = sqlite_connection.cursor()
 
@@ -150,7 +150,8 @@ def TEST_PRINT(graph, routes, sqlite_connection):
 
         key_routes = routes.keys()
         for key in key_routes:
-            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+            cur.execute(
+                "SELECT Name_route FROM routesker WHERE _id = ?",
                 [key])
 
             if routes[key].get_ring() != 0:
@@ -166,10 +167,28 @@ def TEST_PRINT(graph, routes, sqlite_connection):
             )
 
         print("\n", end="")
+        print(seq_stops)
+        print("\n", end="")
 
     except Exception as e:
         print({e})
         exit()
+
+def sequence_id(sqlite_connection):
+    try:
+        cur = sqlite_connection.cursor()
+
+        cur.execute("SELECT _id FROM stopsker")
+
+        seq = list()
+        for elem in cur.fetchall():
+            seq.append(int(elem[0]))
+
+    except Exception as e:
+        print({e})
+        exit()
+    else:
+        return seq
 
 def main():
     try:
@@ -184,12 +203,13 @@ def main():
         # routes[key] has a type of list
         routes = read_routes(sqlite_connection)
         graph = read_graph(sqlite_connection)
+        seq_stops = sequence_id(sqlite_connection)
 
     except Exception as e:
         print({e})
         exit()
     else:
-        TEST_PRINT(graph, routes, sqlite_connection)
+        TEST_PRINT(graph, routes, sqlite_connection, seq_stops)
     finally:
         sqlite_connection.close()
 

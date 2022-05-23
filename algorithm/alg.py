@@ -2,12 +2,11 @@ import heapq
 import math
 import os
 import sqlite3
-from audioop import reverse
 
 import read_db
 
 
-class cal_road:
+class CalRoad:
     # Класс, возвращаемый из функции
     # calculation, содержит три объекта:
     # coords_road - list координат от остановки
@@ -36,8 +35,9 @@ class cal_road:
         return self.route
 
 
-class path:
-    def __init__(self, stop1, stop2, path_of_stops, path_of_routes, path_of_coords):
+class Path:
+    def __init__(self, stop1, stop2, path_of_stops,
+                 path_of_routes, path_of_coords):
         self.stop1 = stop1
         self.stop2 = stop2
         self.path_of_stops = path_of_stops
@@ -116,12 +116,12 @@ def find_road(chain_coords, stop1_coords, stop2_coords, ring):
 # stop2 is id of end stop
 # route is id of route
 # cur is sql cursor
-# function return class cal_road
+# function return class CalRoad
 def calculation(route, stop1, stop2):
 
     # if stop1 is stop
     if stop1 == stop2:
-        return cal_road(stop1, stop2, route, [], 0)
+        return CalRoad(stop1, stop2, route, [], 0)
 
     try:
 
@@ -144,9 +144,10 @@ def calculation(route, stop1, stop2):
         # compose and translate coordinates into float
         chain_coords = list()
         for index in range(0, len(chain_str_coords), 2):
-            chain_coords.append(
-                (float(chain_str_coords[index]), float(chain_str_coords[index + 1]))
-            )
+            chain_coords.append((
+                            float(chain_str_coords[index]),
+                            float(chain_str_coords[index + 1])
+                            ))
         del chain_str_coords
 
         # check if the route is circular
@@ -174,6 +175,13 @@ def calculation(route, stop1, stop2):
         print(stop2_coords)
         print(ring)"""
 
+        print(route)
+        print(stop1)
+        print(stop2)
+        print(chain_coords)
+        print(stop1_coords)
+        print(stop2_coords)
+        print(ring)
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
         # print(road)
@@ -202,10 +210,12 @@ def calculation(route, stop1, stop2):
                 length = length_way
                 enroute = way
 
-        # print(enroute, end="\n\n")
+        info = CalRoad(stop1, stop2, route, enroute, length)
 
-        info = cal_road(stop1, stop2, route, enroute, length)
-        # print(info.get_coords())
+        print(road)
+        print(info.get_length())
+        print(info.get_route())
+        print(info.get_stops(), end = "\n\n")
 
         return info
 
@@ -238,7 +248,9 @@ def dijkstra_core(
             dist[rt[index + 1]] = sum_im_ed
             prev_stop[rt[index + 1]] = rt[index]
             last_route[rt[index + 1]] = route
-            heapq.heappush(priority_queue, (dist[rt[index + 1]], rt[index + 1]))
+            heapq.heappush(priority_queue,
+                           (dist[rt[index + 1]],
+                            rt[index + 1]))
 
     # block that mange a jump from the end of an array to its beginning
     if flag == 0:
@@ -252,15 +264,19 @@ def dijkstra_core(
         for index in range(0, start_pointer):
             if index != start_pointer and rt[index] == stop_num:
                 break
-            sum_im_ed += calculation(route, rt[index], rt[index + 1]).get_length()
+            sum_im_ed += calculation(route, rt[index],
+                                     rt[index + 1]).get_length()
             if dist[rt[index + 1]] > sum_im_ed:
                 dist[rt[index + 1]] = sum_im_ed
                 prev_stop[rt[index + 1]] = rt[index]
                 last_route[rt[index + 1]] = route
-                heapq.heappush(priority_queue, (dist[rt[index + 1]], rt[index + 1]))
+                heapq.heappush(priority_queue,
+                               (dist[rt[index + 1]],
+                                rt[index + 1]))
 
 
-def routes_to_all_stops(start_stop, graph, routes):
+
+def routes_to_all_stops(start_stop, graph, routes, seq_stops):
     # stop has an id id \in [1 ... amount_of_stops]
     # that is why we are making structures in len(graph) + 1
     # priority_queue a struct where we are putting a stop and a length to it
@@ -268,19 +284,26 @@ def routes_to_all_stops(start_stop, graph, routes):
     heapq.heapify(priority_queue)
     # last_route -- a list with the last route from which we came to stop
     # needs for optimization and getting final path
-    last_route = [None for i in range(len(graph) + 1)]
+    last_route = dict()
+    for stop_id in seq_stops:
+        last_route[stop_id] = None
     # prev_stop -- a list with the last stop from with we came to stop
-    prev_stop = [None for i in range(len(graph) + 1)]
+    prev_stop = dict()
+    for stop_id in seq_stops:
+        prev_stop[stop_id] = None
     # the long of the way to the stop
-    dist = [math.inf for i in range(len(graph) + 1)]
+    dist = dict()
+    for stop_id in seq_stops:
+        dist[stop_id] = math.inf
     # if a stop was visited 1 else 0
     # needs for optimization
-    visited = [0 for i in range(len(graph) + 1)]
+    visited = dict()
+    for stop_id in seq_stops:
+        visited[stop_id] = 0
     # pushing the start_stop to heapq
     heapq.heappush(priority_queue, (0, start_stop))
     dist[start_stop] = 0
     prev_stop[start_stop] = start_stop
-
     while len(priority_queue) != 0:
         # taking the min path
         tmp = heapq.heappop(priority_queue)
@@ -299,7 +322,6 @@ def routes_to_all_stops(start_stop, graph, routes):
             # use that trick not for making a lot of transfers
             if route != last_route[stop_num] and stop_num != start_stop:
                 sum_im_ed += 1
-
             for j in range(len(pointer)):
                 dijkstra_core(
                     route,
@@ -316,8 +338,8 @@ def routes_to_all_stops(start_stop, graph, routes):
         visited[stop_num] = 1
     # return the stracture consists of start stop, final stop
     # list of stops connecting them
-    # list of routes connecting them
-    return return_routes(last_route, prev_stop, graph, start_stop)
+    # lutes connecting them
+    return return_routes(last_route, prev_stop, graph, start_stop, seq_stops)
 
 
 def path_of_stops(start_stop, last_stop, mass):
@@ -350,22 +372,22 @@ def coord_way(stops, route):
     return res
 
 
-def return_routes(last_route, prev_stop, graph, start_stop):
+def return_routes(last_route, prev_stop, graph, start_stop, seq_stops):
     ans = list()
-    for i in range(1, len(graph) + 1):
+    for i in seq_stops:
         if prev_stop[i] is None or i == start_stop:
-            ans.append(path(start_stop, i, [], [], []))
+            ans.append(Path(start_stop, i, [], [], []))
         else:
             mass = path_of_stops(start_stop, i, prev_stop)
             route = path_of_routes(mass, last_route)
             coords = coord_way(mass, route)
-            ans.append(path(start_stop, i, mass, route, coords))
+            ans.append(Path(start_stop, i, mass, route, coords))
 
     return ans
 
 
 # the main function finding the optimal route between all pairs of stops
-def opt_routes(graph, routes):
+def opt_routes(graph, routes, seq_stops):
     try:
         cur = sqlite_connection.cursor()
 
@@ -373,24 +395,22 @@ def opt_routes(graph, routes):
             """
             Select count(name) FROM
             sqlite_sequence WHERE name
-            = 'way' 
+            = 'way'
             """
         )
 
         if cur.fetchone()[0] != 0:
-            cur.execute(
-                """DROP TABLE way"""
-            )
+            cur.execute("""DROP TABLE way""")
 
         cur.execute(
             """CREATE TABLE IF NOT EXISTS "way" (
-	            "_id"	INTEGER NOT NULL,
-	            "id1"	INTEGER,
-	            "id2"	INTEGER,
-	            "route"	TEXT,
-	            "transfer"	TEXT,
-	            "cords"	TEXT,
-	            PRIMARY KEY("_id" AUTOINCREMENT)
+                "_id"   INTEGER NOT NULL,
+                "id1"   INTEGER,
+                "id2"   INTEGER,
+                "route" TEXT,
+                "transfer"  TEXT,
+                "cords" TEXT,
+                PRIMARY KEY("_id" AUTOINCREMENT)
             );"""
         )
 
@@ -398,8 +418,8 @@ def opt_routes(graph, routes):
 
         # we run through all the stops in the graph
         # and find all the optimal paths from one stop to another
-        for i in range(1, len(graph) + 1):
-            ways = routes_to_all_stops(i, graph, routes)
+        for stop_id in seq_stops:
+            ways = routes_to_all_stops(stop_id, graph, routes, seq_stops)
 
             for way in ways:
 
@@ -418,15 +438,19 @@ def opt_routes(graph, routes):
                     transfers = list()
                     for elem in list_index:
                         if elem == 0:
-                            transfers.append([
-                                way.get_path_of_stops()[elem],
-                                way.get_path_of_routes()[elem]
-                        ])
+                            transfers.append(
+                                [
+                                    way.get_path_of_stops()[elem],
+                                    way.get_path_of_routes()[elem],
+                                ]
+                            )
                         else:
-                            transfers.append([
-                                way.get_path_of_stops()[elem-1],
-                                way.get_path_of_routes()[elem]
-                        ])
+                            transfers.append(
+                                [
+                                    way.get_path_of_stops()[elem - 1],
+                                    way.get_path_of_routes()[elem],
+                                ]
+                            )
 
                     transfers_str = ""
                     for item in transfers:
@@ -434,7 +458,7 @@ def opt_routes(graph, routes):
                         transfers_str += ";\n"
                     transfers_str = transfers_str[: len(transfers_str) - 2]
 
-                    coord_list = ''
+                    coord_list = ""
                     for array in way.get_path_of_coords():
                         for item in array:
                             coord_list += " ".join(map(str, item))
@@ -442,13 +466,15 @@ def opt_routes(graph, routes):
                     coord_list = coord_list[: len(coord_list) - 1]
 
                     cur.execute(
-                        """INSERT INTO way (id1, id2, route, transfer, cords) VALUES (?, ?, ?, ?, ?)""",
+                        """INSERT INTO way (id1, id2,
+                                            route, transfer, cords)
+                            VALUES (?, ?, ?, ?, ?)""",
                         [
                             way.get_stop1(),
                             way.get_stop2(),
                             " ".join(map(str, way.get_path_of_stops())),
                             transfers_str,
-                            coord_list
+                            coord_list,
                         ],
                     )
 
@@ -467,7 +493,8 @@ def TEST_calculation(routes):
         for key in key_routes:
             plenty = set(routes[key].get_route())
 
-            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?", [key])
+            cur.execute("SELECT Name_route FROM routesker WHERE _id = ?",
+                        [key])
             name_route = cur.fetchone()[0]
 
             print("Route {}: {}".format(name_route, routes[key].get_route()))
@@ -476,10 +503,12 @@ def TEST_calculation(routes):
                 for s2_id in plenty:
                     road_info = calculation(key, s1_id, s2_id)
 
-                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s1_id])
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                                [s1_id])
                     name_s1 = cur.fetchone()[0]
 
-                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?", [s2_id])
+                    cur.execute("SELECT Name_stop FROM stopsker WHERE _id = ?",
+                                [s2_id])
 
                     print(
                         "Between {} and {} - {} by {}".format(
@@ -498,7 +527,8 @@ def TEST_calculation(routes):
 def main():
     try:
         # Connecting to data base
-        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "example.db")
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                            "example.db")
         global sqlite_connection
         sqlite_connection = sqlite3.connect(path)
         # graph is a dict, where key is id of the station
@@ -507,12 +537,13 @@ def main():
         # routes[key] has a type of list
         routes = read_db.read_routes(sqlite_connection)
         graph = read_db.read_graph(sqlite_connection)
+        seq_stops = read_db.sequence_id(sqlite_connection)
     except Exception as e:
         print({e})
         exit()
     else:
         # TEST_calculation(routes)
-        opt_routes(graph, routes)
+        opt_routes(graph, routes, seq_stops)
     finally:
         sqlite_connection.close()
 

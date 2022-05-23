@@ -18,28 +18,43 @@ class SearchForm(FlaskForm):
 
  # Class consists of info about current stop
 class STOP:
-    def __init__(self, ID, name, x, y):
-        self.id = ID 
+    """
+    Класс содержит в себе:
+    id - id остановки
+    name - имя остановки
+    x - широта
+    y - долгота
+    """
+    def __init__(self, id, name, x, y):
+        self.id = id 
         self.name = name
         self.abscissa = x
         self.ordinate = y
 
     def get_id(self):
+        """Возвращаем id"""
         return self.id
 
     def get_name(self):
+        """Возвращаем имя"""
         return self.name
 
     def get_x(self):
+        """Возвращаем широту"""
         return self.abscissa
 
     def get_y(self):
+        """Возвращаем долготу"""
         return self.ordinate
 
-# Getting all stops in the database 
-# with name, x, y and id
-# Output is a list of class STOP
+
 def read_stops(sql_connection):
+    """
+    Getting all stops in the database
+    with name, x, y and id
+    Output is a list of class STOP
+    """
+
     stops = list()
 
     try:
@@ -69,17 +84,20 @@ def read_stops(sql_connection):
                 )
             )
 
-    except Exception as e:
-        print({e})
+    except Exception as exc:
+        print({exc})
         sql_connection.close()
         exit()
         
     else:
         return stops
 
-# Read optimal way in class STOP, way in coords
-# and transfers in the way
+
 def read_way(stop1, stop2, sql_connection):
+    """
+    Read optimal way in class STOP, way in coords
+    and transfers in the way
+    """
     try:
         cur = sql_connection.cursor()
         # For two stops get optimal route between them
@@ -113,7 +131,7 @@ def read_way(stop1, stop2, sql_connection):
         [id1, id2])
         Input = cur.fetchone()
 
-        # if no way 
+        # if no way
         if Input is None:
             return [], [], []
 
@@ -168,43 +186,16 @@ def read_way(stop1, stop2, sql_connection):
             [float(item[0]), float(item[1])]
             for item in way_cords]
 
-    except Exception as e:
-        print({e})
+    except Exception as exc:
+        print({exc})
         sql_connection.close()
         exit()
     else:
         return way_cords, way, transfer
 
-def TEST_PRINT_STOPS(stops, way, transfer, way_cords):
-    print("\nOptimal way:")
-    for element in way:
-        print(
-            "   {} {} {}".format(
-                element.get_name(),
-                element.get_x(),
-                element.get_y()
-        ))
 
-    print("\nTransfer:")
-    for elem in transfer:
-        print("Name of stop: {}, x: {}, y: {}, to route: {}".format(
-            elem[0].get_name(),
-            elem[0].get_x(),
-            elem[0].get_y(),
-            elem[1]
-        ))
-
-    print("\nStops")
-    for stop in stops:
-        print("{}) {} - {} {}".format(stop.get_id(),
-        stop.get_name(), stop.get_x(), stop.get_y()))
-
-    print("\nWay in cords:")
-    print(way_cords)
-
-
-# Getting a connection to the database
 def connection():
+    """Getting a connection to the database"""
     try:
         # Getting the path to the db file
         path = os.path.join(
@@ -215,8 +206,8 @@ def connection():
         # Connecting
         sqlite_connection = sqlite3.connect(path)
 
-    except Exception as e:
-        print({e})
+    except Exception as exc:
+        print({exc})
         exit()
     else:
         return sqlite_connection

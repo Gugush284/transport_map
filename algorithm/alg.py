@@ -175,6 +175,13 @@ def calculation(route, stop1, stop2):
         print(stop2_coords)
         print(ring)"""
 
+        print(route)
+        print(stop1)
+        print(stop2)
+        print(chain_coords)
+        print(stop1_coords)
+        print(stop2_coords)
+        print(ring)
         road = find_road(chain_coords, stop1_coords, stop2_coords, ring)
 
         # print(road)
@@ -203,10 +210,12 @@ def calculation(route, stop1, stop2):
                 length = length_way
                 enroute = way
 
-        # print(enroute, end="\n\n")
-
         info = CalRoad(stop1, stop2, route, enroute, length)
-        # print(info.get_coords())
+
+        print(road)
+        print(info.get_length())
+        print(info.get_route())
+        print(info.get_stops(), end = "\n\n")
 
         return info
 
@@ -266,7 +275,8 @@ def dijkstra_core(
                                 rt[index + 1]))
 
 
-def routes_to_all_stops(start_stop, graph, routes):
+
+def routes_to_all_stops(start_stop, graph, routes, seq_stops):
     # stop has an id id \in [1 ... amount_of_stops]
     # that is why we are making structures in len(graph) + 1
     # priority_queue a struct where we are putting a stop and a length to it
@@ -274,19 +284,26 @@ def routes_to_all_stops(start_stop, graph, routes):
     heapq.heapify(priority_queue)
     # last_route -- a list with the last route from which we came to stop
     # needs for optimization and getting final path
-    last_route = [None for i in range(len(graph) + 1)]
+    last_route = dict()
+    for stop_id in seq_stops:
+        last_route[stop_id] = None
     # prev_stop -- a list with the last stop from with we came to stop
-    prev_stop = [None for i in range(len(graph) + 1)]
+    prev_stop = dict()
+    for stop_id in seq_stops:
+        prev_stop[stop_id] = None
     # the long of the way to the stop
-    dist = [math.inf for i in range(len(graph) + 1)]
+    dist = dict()
+    for stop_id in seq_stops:
+        dist[stop_id] = math.inf
     # if a stop was visited 1 else 0
     # needs for optimization
-    visited = [0 for i in range(len(graph) + 1)]
+    visited = dict()
+    for stop_id in seq_stops:
+        visited[stop_id] = 0
     # pushing the start_stop to heapq
     heapq.heappush(priority_queue, (0, start_stop))
     dist[start_stop] = 0
     prev_stop[start_stop] = start_stop
-
     while len(priority_queue) != 0:
         # taking the min path
         tmp = heapq.heappop(priority_queue)
@@ -305,7 +322,6 @@ def routes_to_all_stops(start_stop, graph, routes):
             # use that trick not for making a lot of transfers
             if route != last_route[stop_num] and stop_num != start_stop:
                 sum_im_ed += 1
-
             for j in range(len(pointer)):
                 dijkstra_core(
                     route,
@@ -322,8 +338,8 @@ def routes_to_all_stops(start_stop, graph, routes):
         visited[stop_num] = 1
     # return the stracture consists of start stop, final stop
     # list of stops connecting them
-    # list of routes connecting them
-    return return_routes(last_route, prev_stop, graph, start_stop)
+    # lutes connecting them
+    return return_routes(last_route, prev_stop, graph, start_stop, seq_stops)
 
 
 def path_of_stops(start_stop, last_stop, mass):
@@ -356,9 +372,9 @@ def coord_way(stops, route):
     return res
 
 
-def return_routes(last_route, prev_stop, graph, start_stop):
+def return_routes(last_route, prev_stop, graph, start_stop, seq_stops):
     ans = list()
-    for i in range(1, len(graph) + 1):
+    for i in seq_stops:
         if prev_stop[i] is None or i == start_stop:
             ans.append(Path(start_stop, i, [], [], []))
         else:
@@ -371,7 +387,7 @@ def return_routes(last_route, prev_stop, graph, start_stop):
 
 
 # the main function finding the optimal route between all pairs of stops
-def opt_routes(graph, routes):
+def opt_routes(graph, routes, seq_stops):
     try:
         cur = sqlite_connection.cursor()
 
@@ -402,8 +418,8 @@ def opt_routes(graph, routes):
 
         # we run through all the stops in the graph
         # and find all the optimal paths from one stop to another
-        for i in range(1, len(graph) + 1):
-            ways = routes_to_all_stops(i, graph, routes)
+        for stop_id in seq_stops:
+            ways = routes_to_all_stops(stop_id, graph, routes, seq_stops)
 
             for way in ways:
 
@@ -521,12 +537,13 @@ def main():
         # routes[key] has a type of list
         routes = read_db.read_routes(sqlite_connection)
         graph = read_db.read_graph(sqlite_connection)
+        seq_stops = read_db.sequence_id(sqlite_connection)
     except Exception as e:
         print({e})
         exit()
     else:
         # TEST_calculation(routes)
-        opt_routes(graph, routes)
+        opt_routes(graph, routes, seq_stops)
     finally:
         sqlite_connection.close()
 

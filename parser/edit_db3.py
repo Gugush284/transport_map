@@ -54,9 +54,10 @@ with con:
             distances = np.linalg.norm(A-s_point, axis=1)   #вычисляем наименьшее расстояние
             min_index = np.argmin(distances)                #вычисляем индекс точки, дающей наименьшее расстояние
             #print(f"the closest point is {A[min_index]}, the point was {s_point}, at a distance of {distances[min_index]}")
-            
-            lst_cords.insert(min_index+1,dann)              #вставляем координаты остановки на следующую после наиближайшей
-                  
+            #print(rid)
+            lst_cords[min_index]=dann              #вставляем координаты остановки на следующую после наиближайшей
+            #print(lst_cords)
+            #print(min_index)
             m=''                                    #собираем из массива обратно строку
             for crod in lst_cords:                  #цикл по координатам
                 m=m+''.join([(str(e)+" ") for e in crod])+"\n"  #каждое число вставляем в виде строки
@@ -82,16 +83,16 @@ with con:
             (chain_cords_str2,)=chain_cords_cort2[0] #преобразовываем в строку кортеж
             
             
-            lst_cords=chain_cords_str2.split("\n")  #делаем из цепочки координат массив кортежей
-            lst_cords.remove('')                    #удаляем пустой символ
-          
-            lst_cords_adds=lst_cords[::-1]  #создаём массив в обратном порядке
+            lst_cords2=chain_cords_str2.split("\n")  #делаем из цепочки координат массив кортежей
+            lst_cords2.remove('')                    #удаляем пустой символ
+            
+            lst_cords_adds=lst_cords2[::-1]  #создаём массив в обратном порядке
             lst_cords_adds.pop(0)             #удаляем первый элемент
             
-            lst_cords=lst_cords+lst_cords_adds  #соединяем новую цепочку маршрута из прямого и обратного путей
-        
+            lst_cords2=lst_cords2+lst_cords_adds  #соединяем новую цепочку маршрута из прямого и обратного путей
+            
             m=''
-            m=''.join([(str(e)+"\n") for e in lst_cords])   #собираем это обратно в строку
+            m=''.join([(str(e)+"\n") for e in lst_cords2])   #собираем это обратно в строку
             update_sqlite_table_routesker(rid,m)            #обновляем данные в базе данных
         print("Прогресс2: ",round(j/len(routes)*100,2),"%" )
         j=j+1   
